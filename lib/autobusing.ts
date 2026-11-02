@@ -11,8 +11,8 @@ export type SeatsResult =
 export type FetchSeatsOptions = {
   fetchImpl?: typeof fetch;
   now?: () => Date;
-  // permitir emparejar solo por salida; el llamante lo activa cuando samar.es no tiene otro bus a esa hora
-  allowDepartureOnly?: boolean;
+  // llegadas de los otros buses de samar.es con la misma salida; sin ellas solo vale la coincidencia exacta
+  siblingArrivals?: string[] | null;
 };
 
 const BASE = 'https://regular.autobusing.es';
@@ -41,12 +41,31 @@ export function parseSeatMap(html: string): { when: string | null; free: number;
   return { when, free, occupied: states.length - free, total: states.length };
 }
 
+/**
+ * Elige la fila de autobusing de un bus de samar.es. Primero salida+llegada exactas; si no, por descarte:
+ * quitando las filas que ya corresponden exactamente a otros buses de samar.es a esa hora, tiene que quedar
+ * una sola fila y ningún otro bus de samar.es sin pareja. Ante la duda, null.
+ */
+export function pickRow(
+  trip: { departure: string; arrival: string },
+  siblingArrivals: string[],
+  rows: ScheduleRow[],
+): { row: ScheduleRow; exact: boolean } | null {
+  const sameDeparture = rows.filter((r) => r.departure === trip.departure);
+  const exact = sameDeparture.filter((r) => r.arrival === trip.arrival);
+  if (exact.length === 1) return { row: exact[0], exact: true };
+  if (exact.length > 1) return null;
+  const free = sameDeparture.filter((r) => !siblingArrivals.includes(r.arrival));
+  const unmatchedSiblings = siblingArrivals.filter((a) => !sameDeparture.some((r) => r.arrival === a));
+  return free.length === 1 && unmatchedSiblings.length === 0 ? { row: free[0], exact: false } : null;
+}
+
 const toSpanish = (date: string) => date.split('-').reverse().join('/'); // 2026-11-03 → 03/11/2026
 
 export async function fetchSeats(
   trip: Trip,
   date: string,
-  { fetchImpl = fetch, now = () => new Date(), allowDepartureOnly = false }: FetchSeatsOptions = {},
+  { fetchImpl = fetch, now = () => new Date(), siblingArrivals = null }: FetchSeatsOptions = {},
 ): Promise<SeatsResult> {
   let cookie = '';
   let lastRedirect = '';
@@ -86,11 +105,10 @@ export async function fetchSeats(
     'venta[tipo_iyv]': 'ida',
   }));
 
-  const sameDeparture = parseSchedule(await request('/venta/horarios')).filter((r) => r.departure === trip.departure);
-  const exact = sameDeparture.filter((r) => r.arrival === trip.arrival);
-  const matches = exact.length === 1 ? exact : allowDepartureOnly && sameDeparture.length === 1 ? sameDeparture : [];
-  if (matches.length !== 1) return { ok: false, reason: 'No encontrado en autobusing' };
-  const row = matches[0];
+  const rows = parseSchedule(await request('/venta/horarios'));
+  const picked = pickRow(trip, siblingArrivals ?? [], rows);
+  if (!picked || (!picked.exact && !siblingArrivals)) return { ok: false, reason: 'No encontrado en autobusing' };
+  const { row } = picked;
   const matchedArrival = row.arrival !== trip.arrival ? { matchedArrival: row.arrival } : {};
   if (row.full) return { ok: true, full: true, checkedAt: now().toISOString(), ...matchedArrival };
   if (!row.nromov) return { ok: false, reason: 'autobusing no permite seleccionar este bus' };

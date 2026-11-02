@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import { fetchTrips, type Direction, type Trip } from './samar.ts';
+import { SCHEMA_VERSION, fetchTrips, type Direction, type Trip } from './samar.ts';
 import { fetchSeats } from './autobusing.ts';
 
 export const TRIPS_TTL_S = 3600;
@@ -11,16 +11,16 @@ export const bucket = (ttlSeconds: number, now = Date.now()) => Math.floor(now /
 
 const tripsCached = unstable_cache(
   (dir: Direction, date: string, _bucket: number) => fetchTrips(dir, date),
-  ['trips-v1'],
+  ['trips', `v${SCHEMA_VERSION}`],
   { revalidate: TRIPS_TTL_S },
 );
 
 const seatsCached = unstable_cache(
-  (trip: Trip, date: string, allowDepartureOnly: boolean, _bucket: number) => fetchSeats(trip, date, { allowDepartureOnly }),
-  ['seats-v3'],
+  (trip: Trip, date: string, siblings: string[], _bucket: number) => fetchSeats(trip, date, { siblingArrivals: siblings }),
+  ['seats', `v${SCHEMA_VERSION}`],
   { revalidate: SEATS_TTL_S },
 );
 
 export const getTrips = (dir: Direction, date: string) => tripsCached(dir, date, bucket(TRIPS_TTL_S));
-export const getSeats = (trip: Trip, date: string, allowDepartureOnly: boolean) =>
-  seatsCached(trip, date, allowDepartureOnly, bucket(SEATS_TTL_S));
+export const getSeats = (trip: Trip, date: string, siblings: string[]) =>
+  seatsCached(trip, date, siblings, bucket(SEATS_TTL_S));

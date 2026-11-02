@@ -14,6 +14,8 @@ export type Trip = {
   alerts: string[];
 };
 export type SearchResult = { trips: Trip[]; notices: string[] };
+// Subir al cambiar la forma de Trip/SearchResult: la caché de datos de Next sobrevive a despliegues y reinicios.
+export const SCHEMA_VERSION = 2;
 
 export const USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:132.0) Gecko/20100101 Firefox/132.0';
 export const TIMEOUT_MS = 10_000;
