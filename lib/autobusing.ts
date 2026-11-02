@@ -31,6 +31,7 @@ export async function fetchSeats(
   now: () => Date = () => new Date(),
 ): Promise<SeatsResult> {
   let cookie = '';
+  let lastRedirect = '';
   const request = async (path: string, body?: URLSearchParams) => {
     const res = await fetchImpl(`${BASE}${path}`, {
       method: body ? 'POST' : 'GET',
@@ -47,6 +48,7 @@ export async function fetchSeats(
     if (set) cookie = set.split(';')[0];
     const okStatus = body ? res.status === 200 || res.status === 302 : res.status === 200;
     if (!okStatus) throw new Error(`autobusing respondió ${res.status} en ${path}`);
+    lastRedirect = res.status === 302 ? (res.headers.get('location') ?? '') : '';
     return res.text();
   };
 
@@ -71,6 +73,8 @@ export async function fetchSeats(
   if (matches.length !== 1) return { ok: false, reason: 'No encontrado en autobusing' };
 
   await request('/venta/horarios', new URLSearchParams({ 'venta[elegir_plazas_ida]': 't', 'venta[nromov_ida]': matches[0].nromov }));
+  // si autobusing rechaza la selección, la sesión seguiría en el bus que eligió /venta/inicio (quizá otro a la misma hora)
+  if (!lastRedirect.endsWith('/venta/plazas')) return { ok: false, reason: 'autobusing no aceptó la selección del bus' };
 
   const map = parseSeatMap(await request('/venta/plazas'));
   if (map.when !== `${fecha} ${trip.departure}` || map.total === 0) {

@@ -11,7 +11,7 @@ const trip0730 = trips.find((x) => x.expedition === '910001')!;
 type Call = { method: string; path: string; cookie: string | null; body: string };
 
 // Imita a autobusing: cookie en inicio_info, 302 en los POST y fixtures en los GET.
-function fakeAutobusing(opts: { plazas?: string; status500?: boolean } = {}) {
+function fakeAutobusing(opts: { plazas?: string; status500?: boolean; horariosPost?: () => Response } = {}) {
   const calls: Call[] = [];
   const fetchImpl = (async (input: string, init: RequestInit = {}) => {
     const url = new URL(input);
@@ -23,6 +23,7 @@ function fakeAutobusing(opts: { plazas?: string; status500?: boolean } = {}) {
     if (key === 'GET /venta/inicio_info') {
       return new Response(fx('ab-inicio.html'), { headers: { 'set-cookie': 'rack.session=abc; path=/; HttpOnly' } });
     }
+    if (key === 'POST /venta/horarios' && opts.horariosPost) return opts.horariosPost();
     if (method === 'POST') return new Response(null, { status: 302, headers: { location: '/venta/plazas' } });
     if (key === 'GET /venta/horarios') return new Response(fx('ab-horarios-ida-2026-11-03.html'));
     if (key === 'GET /venta/plazas') return new Response(fx(opts.plazas ?? 'ab-plazas-0730.html'));
@@ -72,6 +73,19 @@ test('fetchSeats: bus que cruza medianoche (23:45→01:40) se empareja', async (
 test('fetchSeats: la página de plazas es de otra hora → ok:false', async () => {
   const { fetchImpl } = fakeAutobusing({ plazas: 'ab-plazas-1000.html' });
   assert.equal((await fetchSeats(trip0730, '2026-11-03', fetchImpl)).ok, false);
+});
+
+test('fetchSeats: autobusing rechaza la selección del bus (200 o 302 a horarios) → ok:false, sin pedir plazas', async () => {
+  const rejections = [
+    () => new Response(fx('ab-horarios-ida-2026-11-03.html')),
+    () => new Response(null, { status: 302, headers: { location: '/venta/horarios' } }),
+  ];
+  for (const horariosPost of rejections) {
+    const { calls, fetchImpl } = fakeAutobusing({ horariosPost });
+    const r = await fetchSeats(trip0730, '2026-11-03', fetchImpl);
+    assert.equal(r.ok, false);
+    assert.ok(!calls.some((c) => c.path === '/venta/plazas'));
+  }
 });
 
 test('fetchSeats lanza error si autobusing devuelve 500', async () => {

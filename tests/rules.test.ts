@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { parseResults } from '../lib/samar.ts';
 import {
   isDirect, stopsAtSantaOlalla, tripKind, KIND_LABEL, isAmbiguous, passesThrough,
-  todayMadrid, isAllowedDate, parseDirection,
+  todayMadrid, isAllowedDate, parseDirection, searchDate,
 } from '../lib/rules.ts';
 
 const { trips } = parseResults(readFileSync(new URL('./fixtures/samar-ida-2026-11-03.html', import.meta.url), 'utf8'));
@@ -48,6 +48,13 @@ test('isAllowedDate: de hoy a hoy+60', () => {
   assert.equal(isAllowedDate('2027-01-02', now), false);
   assert.equal(isAllowedDate('2026-11-01', now), false);
   for (const bad of ['2026-13-01', '2026-11-3', '2026-11-31', 'mañana', '']) assert.equal(isAllowedDate(bad, now), false, bad);
+});
+
+test('searchDate: una fecha que se quedó en el pasado (pestaña abierta desde ayer) pasa a hoy', () => {
+  const now = new Date('2026-11-03T08:00:00Z');
+  assert.equal(searchDate('2026-11-02', now), '2026-11-03');
+  assert.equal(searchDate('2026-11-05', now), '2026-11-05');
+  assert.equal(searchDate('', now), '2026-11-03');
 });
 
 test('parseDirection', () => {

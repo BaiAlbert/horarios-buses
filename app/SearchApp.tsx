@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { Direction, SearchResult } from '../lib/samar.ts';
-import { MAX_DAYS_AHEAD, addDays, todayMadrid } from '../lib/rules.ts';
+import { MAX_DAYS_AHEAD, addDays, searchDate, todayMadrid } from '../lib/rules.ts';
 import TripCard from './TripCard.tsx';
 
 const ROUTE_LABEL: Record<Direction, string> = {
@@ -42,8 +42,10 @@ export default function SearchApp() {
   };
 
   async function search() {
-    if (!date) return;
-    const searched = { dir, date };
+    const searched = { dir, date: searchDate(date) };
+    const t = todayMadrid();
+    if (t !== today) setToday(t);
+    if (searched.date !== date) setDate(searched.date);
     setState({ status: 'loading' });
     try {
       const res = await fetch(`/api/trips?dir=${searched.dir}&date=${searched.date}`);

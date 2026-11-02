@@ -54,6 +54,12 @@ export function isAllowedDate(date: string, now: Date = new Date()): boolean {
   return date >= today && date <= addDays(today, MAX_DAYS_AHEAD);
 }
 
+// La fecha seleccionada puede haberse quedado en el pasado si la pestaña sigue abierta desde otro día.
+export function searchDate(selected: string, now: Date = new Date()): string {
+  const today = todayMadrid(now);
+  return selected && selected >= today ? selected : today;
+}
+
 export function parseDirection(v: string | null): Direction | null {
   return v === 'ida' || v === 'vuelta' ? v : null;
 }
