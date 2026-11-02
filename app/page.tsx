@@ -1,1 +1,5 @@
-export default function Page() { return <main>Horarios</main>; }
+import SearchApp from './SearchApp.tsx';
+
+export default function Page() {
+  return <SearchApp />;
+}
