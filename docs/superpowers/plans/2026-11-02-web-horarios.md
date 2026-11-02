@@ -71,7 +71,7 @@ tests/*.test.ts, tests/fixtures/*.html
 
 ---
 
-### Tarea 1: Proyecto Next.js, configuración y fixtures
+### Task 1: Proyecto Next.js, configuración y fixtures
 
 **Ficheros:**
 - Crear: `package.json`, `tsconfig.json`, `next.config.ts`, `vercel.json`, `.gitignore`, `.env.example`, `app/layout.tsx`, `app/page.tsx` (provisional), `app/globals.css` (vacío), `app/robots.ts`.
@@ -157,7 +157,7 @@ git add -A && git commit -m "chore: proyecto Next.js con noindex, región cdg1 y
 
 ---
 
-### Tarea 2: Parser y descarga de samar.es
+### Task 2: Parser y descarga de samar.es
 
 **Ficheros:**
 - Crear: `lib/samar.ts`
@@ -225,7 +225,7 @@ Se replica la lógica de `scripts/parse_resultados.py`:
 
 ---
 
-### Tarea 3: Reglas de negocio y fechas
+### Task 3: Reglas de negocio y fechas
 
 **Ficheros:**
 - Crear: `lib/rules.ts`
@@ -293,7 +293,7 @@ test('parseDirection', () => { assert.equal(parseDirection('ida'), 'ida'); asser
 
 ---
 
-### Tarea 4: Plazas en autobusing
+### Task 4: Plazas en autobusing
 
 **Ficheros:**
 - Crear: `lib/autobusing.ts`
@@ -364,7 +364,7 @@ test('fetchSeats lanza error si autobusing devuelve 500', async () => { await as
 
 ---
 
-### Tarea 5: Acceso con contraseña
+### Task 5: Acceso con contraseña
 
 **Ficheros:**
 - Crear: `lib/auth.ts`, `proxy.ts`, `app/login/page.tsx`, `app/login/actions.ts`
@@ -409,7 +409,7 @@ test('sin cookie o sin APP_PASSWORD → false', async () => {
 
 ---
 
-### Tarea 6: Rutas de API con caché
+### Task 6: Rutas de API con caché
 
 **Ficheros:**
 - Crear: `lib/cache.ts`, `app/api/trips/route.ts`, `app/api/seats/route.ts`
@@ -444,7 +444,7 @@ test('sin cookie o sin APP_PASSWORD → false', async () => {
 
 ---
 
-### Tarea 7: Interfaz (tarjetas B), README y comprobación final
+### Task 7: Interfaz (tarjetas B), README y comprobación final
 
 **Ficheros:**
 - Crear: `app/SearchApp.tsx`, `app/TripCard.tsx`, `README.md`
