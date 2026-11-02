@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { parseResults } from '../lib/samar.ts';
 import {
   isDirect, stopsAtSantaOlalla, tripKind, KIND_LABEL, isAmbiguous, passesThrough,
-  todayMadrid, isAllowedDate, parseDirection, searchDate,
+  todayMadrid, isAllowedDate, parseDirection, searchDate, sharesDeparture,
 } from '../lib/rules.ts';
 
 const { trips } = parseResults(readFileSync(new URL('./fixtures/samar-ida-2026-11-03.html', import.meta.url), 'utf8'));
@@ -29,6 +29,12 @@ test('tripKind: tres tipos', () => {
 test('isAmbiguous: 901/902/903 de las 08:00 sí; 909 de las 10:00 no', () => {
   assert.equal(isAmbiguous(t('901001'), trips), true);
   assert.equal(isAmbiguous(t('909003'), trips), false);
+});
+
+test('sharesDeparture: 909 y 910 de las 13:00 sí; 910 de las 00:30 no', () => {
+  assert.equal(sharesDeparture(t('909006'), trips), true);
+  assert.equal(sharesDeparture(t('910005'), trips), true);
+  assert.equal(sharesDeparture(t('910047'), trips), false);
 });
 
 test('passesThrough solo para 901-905', () => {

@@ -16,10 +16,11 @@ const tripsCached = unstable_cache(
 );
 
 const seatsCached = unstable_cache(
-  (trip: Trip, date: string, _bucket: number) => fetchSeats(trip, date),
-  ['seats-v1'],
+  (trip: Trip, date: string, allowDepartureOnly: boolean, _bucket: number) => fetchSeats(trip, date, { allowDepartureOnly }),
+  ['seats-v3'],
   { revalidate: SEATS_TTL_S },
 );
 
 export const getTrips = (dir: Direction, date: string) => tripsCached(dir, date, bucket(TRIPS_TTL_S));
-export const getSeats = (trip: Trip, date: string) => seatsCached(trip, date, bucket(SEATS_TTL_S));
+export const getSeats = (trip: Trip, date: string, allowDepartureOnly: boolean) =>
+  seatsCached(trip, date, allowDepartureOnly, bucket(SEATS_TTL_S));

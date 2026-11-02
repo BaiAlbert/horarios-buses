@@ -11,6 +11,7 @@ export type Trip = {
   stops: Stop[];
   originCode: string;
   destinationCode: string;
+  alerts: string[];
 };
 export type SearchResult = { trips: Trip[]; notices: string[] };
 
@@ -47,6 +48,12 @@ export function parseResults(html: string): SearchResult {
     throw new Error(`samar.es anuncia ${count[1]} resultados pero hay ${chunks.length} tarjetas`);
   }
 
+  // avisos de parada: botón en la tarjeta (data-bs-target) → modal en cualquier parte de la página
+  const alertText = new Map(
+    [...html.matchAll(/<div class="modal fade" id="(stopAlertModal-[\w-]+)"[\s\S]*?<div class="modal-body[^"]*">([\s\S]*?)<\/div>/g)]
+      .map((m) => [m[1], text(m[2])]),
+  );
+
   const trips = chunks.map((chunk): Trip => {
     const attrs = Object.fromEntries([...chunk.slice(0, chunk.indexOf('>')).matchAll(/data-([a-z-]+)="([^"]*)"/g)].map((m) => [m[1], m[2]]));
     const stops = [...chunk.matchAll(/itinerary-stop-name[^"]*">([^<]+)<\/span>[\s\S]*?itinerary-stop-time[^"]*">([^<]+)<\/div>/g)]
@@ -61,6 +68,11 @@ export function parseResults(html: string): SearchResult {
       stops,
       originCode: attrs['origin-purchase-code'] ?? '',
       destinationCode: attrs['destination-purchase-code'] ?? '',
+      alerts: [...new Set(
+        [...chunk.matchAll(/class="btn-stop-alert"[^>]*data-bs-target="#(stopAlertModal-[\w-]+)"/g)]
+          .map((m) => alertText.get(m[1]))
+          .filter((t): t is string => !!t),
+      )],
     };
   });
 

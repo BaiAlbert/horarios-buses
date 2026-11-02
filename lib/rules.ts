@@ -34,6 +34,11 @@ export function isAmbiguous(t: Trip, all: Trip[]): boolean {
   return all.some((o) => o.expedition !== t.expedition && o.departure === t.departure && o.arrival === t.arrival);
 }
 
+// Si samar.es tiene otro bus a la misma hora de salida, la salida sola no identifica el bus en autobusing.
+export function sharesDeparture(t: Trip, all: Trip[]): boolean {
+  return all.some((o) => o.expedition !== t.expedition && o.departure === t.departure);
+}
+
 export function todayMadrid(now: Date = new Date()): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(now);
 }

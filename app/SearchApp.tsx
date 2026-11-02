@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import type { Direction, SearchResult } from '../lib/samar.ts';
-import { MAX_DAYS_AHEAD, addDays, searchDate, todayMadrid } from '../lib/rules.ts';
+import { KIND_LABEL, MAX_DAYS_AHEAD, addDays, searchDate, todayMadrid, tripKind, type TripKind } from '../lib/rules.ts';
+import DatePicker from './DatePicker.tsx';
 import TripCard from './TripCard.tsx';
 
 const ROUTE_LABEL: Record<Direction, string> = {
@@ -17,6 +18,8 @@ type State =
   | { status: 'done'; dir: Direction; date: string; data: SearchResult };
 
 const HIDE_KEY = 'ocultar-itinerarios';
+const KINDS_KEY = 'tipos-visibles';
+const ALL_KINDS = Object.keys(KIND_LABEL) as TripKind[];
 
 const longDate = (date: string) =>
   new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
@@ -27,18 +30,29 @@ export default function SearchApp() {
   const [date, setDate] = useState('');
   const [hideItinerary, setHideItinerary] = useState(false);
   const [state, setState] = useState<State>({ status: 'idle' });
+  const [kinds, setKinds] = useState<TripKind[]>(ALL_KINDS);
 
   useEffect(() => {
     // la página se genera en el build: «hoy» se calcula en el navegador
     const t = todayMadrid();
     setToday(t);
     setDate(t);
-    try { setHideItinerary(localStorage.getItem(HIDE_KEY) === '1'); } catch {}
+    try {
+      setHideItinerary(localStorage.getItem(HIDE_KEY) === '1');
+      const saved = JSON.parse(localStorage.getItem(KINDS_KEY) ?? 'null');
+      if (Array.isArray(saved)) setKinds(ALL_KINDS.filter((k) => saved.includes(k)));
+    } catch {}
   }, []);
 
   const toggleHide = (v: boolean) => {
     setHideItinerary(v);
     try { localStorage.setItem(HIDE_KEY, v ? '1' : '0'); } catch {}
+  };
+
+  const toggleKind = (k: TripKind) => {
+    const next = kinds.includes(k) ? kinds.filter((x) => x !== k) : ALL_KINDS.filter((x) => x === k || kinds.includes(x));
+    setKinds(next);
+    try { localStorage.setItem(KINDS_KEY, JSON.stringify(next)); } catch {}
   };
 
   async function search() {
@@ -72,11 +86,7 @@ export default function SearchApp() {
         </fieldset>
 
         <label htmlFor="date">Día del viaje</label>
-        <input
-          id="date" type="date" required value={date}
-          min={today || undefined} max={today ? addDays(today, MAX_DAYS_AHEAD) : undefined}
-          onChange={(e) => setDate(e.target.value)}
-        />
+        {today && <DatePicker id="date" value={date} min={today} max={addDays(today, MAX_DAYS_AHEAD)} onChange={setDate} />}
 
         <button type="submit" className="primary" disabled={!date || state.status === 'loading'}>
           {state.status === 'loading' ? 'Buscando…' : 'Buscar buses'}
@@ -108,14 +118,33 @@ export default function SearchApp() {
               <p className="empty">No hay buses para este día.</p>
             ) : (
               <>
-                <p className="count">{state.data.trips.length} buses</p>
-                <ul className="trips">
-                  {state.data.trips.map((t) => (
-                    <li key={t.expedition}>
-                      <TripCard trip={t} dir={state.dir} date={state.date} hideItinerary={hideItinerary} />
-                    </li>
+                <fieldset className="filters">
+                  <legend>Mostrar</legend>
+                  {ALL_KINDS.map((k) => (
+                    <label key={k} className={`chip kind-${k}`}>
+                      <input type="checkbox" checked={kinds.includes(k)} onChange={() => toggleKind(k)} />
+                      {KIND_LABEL[k]} <span className="chip-count">{state.data.trips.filter((t) => tripKind(t) === k).length}</span>
+                    </label>
                   ))}
-                </ul>
+                </fieldset>
+                {(() => {
+                  const visible = state.data.trips.filter((t) => kinds.includes(tripKind(t)));
+                  return (
+                    <>
+                      <p className="count">
+                        {visible.length === state.data.trips.length ? `${visible.length} buses` : `Mostrando ${visible.length} de ${state.data.trips.length} buses`}
+                      </p>
+                      {visible.length === 0 && <p className="empty">Ningún bus con los tipos seleccionados.</p>}
+                      <ul className="trips">
+                        {visible.map((t) => (
+                          <li key={t.expedition}>
+                            <TripCard trip={t} dir={state.dir} date={state.date} hideItinerary={hideItinerary} />
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  );
+                })()}
               </>
             )}
           </>

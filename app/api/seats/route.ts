@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { SESSION_COOKIE, isValidSession } from '../../../lib/auth.ts';
 import { getSeats, getTrips } from '../../../lib/cache.ts';
-import { isAllowedDate, isAmbiguous, parseDirection, passesThrough } from '../../../lib/rules.ts';
+import { isAllowedDate, isAmbiguous, parseDirection, passesThrough, sharesDeparture } from '../../../lib/rules.ts';
 
 export const maxDuration = 30;
 
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    return Response.json({ ...(await getSeats(trip, date)), passThrough });
+    return Response.json({ ...(await getSeats(trip, date, !sharesDeparture(trip, trips))), passThrough });
   } catch (e) {
     console.error('autobusing', e);
     return Response.json({ error: 'No se pudo consultar autobusing' }, { status: 502 });

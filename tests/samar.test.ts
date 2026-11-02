@@ -23,9 +23,19 @@ test('parseResults ida 03/11: 46 buses con itinerario', () => {
       { name: 'Santa Olalla', time: '01:35' },
       { name: 'Talavera de La Reina', time: '02:05' },
     ],
+    alerts: [],
   });
   assert.equal(notices.length, 2);
   assert.match(notices[1], /^LOS DÍAS 1 Y 2 DE NOVIEMBRE/);
+});
+
+test('parseResults extrae los avisos de parada de cada bus, sin repetir', () => {
+  const vuelta = parseResults(fx('samar-vuelta-2026-11-06.html')).trips;
+  assert.deepEqual(vuelta.find((t) => t.expedition === '909537')!.alerts, ['ESTE SERVICIO SÓLO LLEGA HASTA ALCORCÓN, NO TIENE PARADA EN LA ESTACIÓN SUR']);
+  assert.equal(vuelta.filter((t) => t.alerts.length > 0).length, 2);
+  const ida = parseResults(fx('samar-ida-2026-11-03.html')).trips;
+  assert.deepEqual(ida.find((t) => t.expedition === '901001')!.alerts, ['LOS BILLETES CON EL Nº 91 - 92 O 93 DE AUTOBÚS (CORRESPONDEN A LAS DÁRSENAS DE LA 44 A 53)']);
+  assert.deepEqual(ida.find((t) => t.expedition === '909003')!.alerts, []);
 });
 
 test('parseResults vuelta 06/11: 48 buses', () => {

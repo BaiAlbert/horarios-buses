@@ -114,3 +114,47 @@ input[type="date"], input[type="password"] {
 .error button { background: none; border: 0; color: var(--accent); text-decoration: underline; padding: 0 4px; }
 
 .login { max-width: 400px; }
+
+/* Calendario (lunes primero, dd/mm/aaaa) */
+.datepicker { position: relative; }
+.date-button {
+  width: 100%; min-height: 44px; text-align: left; padding: 10px 12px;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--surface); font-variant-numeric: tabular-nums;
+}
+.date-button .weekday { color: var(--muted); margin-left: 6px; }
+.calendar {
+  position: absolute; z-index: 10; top: calc(100% + 6px); left: 0; width: min(100%, 340px);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgb(0 0 0 / .18); padding: 10px;
+}
+.calendar-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.calendar-title { font-weight: 600; display: inline-block; }
+.calendar-title::first-letter { text-transform: uppercase; }
+.calendar-head button { width: 40px; height: 40px; border: 0; border-radius: 8px; background: none; font-size: 1.4rem; }
+.calendar table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.calendar th { font-size: .8rem; color: var(--muted); font-weight: 600; padding: 4px 0; }
+.calendar td { padding: 2px; text-align: center; }
+.calendar td button {
+  width: 100%; aspect-ratio: 1; max-height: 42px; border: 0; border-radius: 8px; background: none; font-variant-numeric: tabular-nums;
+}
+.calendar td button:not(:disabled):hover { background: var(--accent-soft); }
+.calendar td button.today { outline: 1px solid var(--accent); outline-offset: -1px; }
+.calendar td button.selected { background: var(--accent); color: var(--accent-text); font-weight: 700; }
+.calendar td button:disabled { opacity: .3; }
+
+/* Filtro por tipo */
+.filters { border: 0; padding: 0; margin: 0 0 6px; display: flex; flex-wrap: wrap; gap: 8px; }
+.filters legend { font-size: .9rem; color: var(--muted); padding: 0; margin-bottom: 6px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 6px 12px;
+  font-size: .9rem; font-weight: 600; cursor: pointer; min-height: 36px; border: 2px solid transparent;
+}
+.chip:has(input:not(:checked)) { background: transparent; border-color: var(--border); color: var(--muted); font-weight: 500; }
+.chip input { width: 16px; height: 16px; margin: 0; }
+.chip-count { font-weight: 400; opacity: .8; }
+
+/* Avisos de parada del bus */
+.trip-alerts { background: var(--warn-bg); color: var(--warn-fg); border-radius: 10px; padding: 8px 12px; margin-top: 10px; font-size: .88rem; font-weight: 600; }
+.trip-alerts p { margin: 0; }
+.trip-alerts p + p { margin-top: 4px; }
+.seats-full { background: var(--warn-bg); color: var(--warn-fg); border-radius: 10px; padding: 8px 12px; }

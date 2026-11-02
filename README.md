@@ -41,5 +41,8 @@ Si `APP_PASSWORD` no está definida, nadie puede entrar.
 ## Limitaciones conocidas
 
 - La web lee el HTML de samar.es y de autobusing. Si cambian su diseño, la búsqueda dará error («No se pudo consultar Samar») y no mostrará datos a medias.
-- Las plazas solo se muestran si el bus coincide exactamente (hora de salida y de llegada) con uno de autobusing. Si no, aparece «Plazas no disponibles».
+- Las plazas se buscan en autobusing por hora de salida y llegada.
+  - Si solo coincide la salida, y no hay otro bus de Samar a esa hora, se muestran con un aviso.
+  - Si autobusing marca el bus como «Completo», se indica que no quedan plazas.
+  - Algunos buses no tienen elección de asiento en la venta online. En esos no se pueden ver las plazas.
 - Algunas 909 continúan hasta el aeropuerto. Sus plazas se muestran sin aviso.

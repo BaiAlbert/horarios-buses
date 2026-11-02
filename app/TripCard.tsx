@@ -43,6 +43,12 @@ export default function TripCard({ trip, dir, date, hideItinerary }: { trip: Tri
         <span>{hm(trip.duration)}</span>
       </p>
 
+      {trip.alerts.length > 0 && (
+        <div className="trip-alerts" role="note">
+          {trip.alerts.map((a) => <p key={a}><span aria-hidden="true">⚠</span> {a}</p>)}
+        </div>
+      )}
+
       {!hideItinerary && (
         <ol className="itinerary">
           {trip.stops.map((s, i) => (
@@ -61,9 +67,19 @@ export default function TripCard({ trip, dir, date, hideItinerary }: { trip: Tri
           <p className="error">No se pudo consultar. <button type="button" onClick={loadSeats}>Reintentar</button></p>
         )}
         {seats.status === 'done' && (seats.result.ok ? (
-          <div className="seats-ok">
-            <p><strong>{seats.result.seats.free} libres</strong> · {seats.result.seats.occupied} ocupadas · {seats.result.seats.total} totales{' '}
-              <small>(consultado {madridTime(seats.result.seats.checkedAt)})</small></p>
+          <div className={'full' in seats.result ? 'seats-full' : 'seats-ok'}>
+            {'full' in seats.result ? (
+              <p><strong>Completo:</strong> no quedan plazas <small>(consultado {madridTime(seats.result.checkedAt)})</small></p>
+            ) : (
+              <p><strong>{seats.result.seats.free} libres</strong> · {seats.result.seats.occupied} ocupadas · {seats.result.seats.total} totales{' '}
+                <small>(consultado {madridTime(seats.result.seats.checkedAt)})</small></p>
+            )}
+            {seats.result.matchedArrival && (
+              <p className="note">
+                Aviso: en el sistema de venta este bus llega a las {seats.result.matchedArrival} (en Samar, a las {trip.arrival}).
+                Se ha emparejado solo por la hora de salida.
+              </p>
+            )}
             {seats.result.passThrough && (
               <p className="note">Este bus continúa más allá de tu trayecto; las plazas podrían referirse a todo el recorrido.</p>
             )}

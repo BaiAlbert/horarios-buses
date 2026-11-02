@@ -2,7 +2,18 @@
 import { TIMEOUT_MS, USER_AGENT, type Trip } from './samar.ts';
 
 export type Seats = { free: number; occupied: number; total: number; checkedAt: string };
-export type SeatsResult = { ok: true; seats: Seats } | { ok: false; reason: string };
+// matchedArrival: solo coincidió la hora de salida; es la llegada que da autobusing (distinta de la de samar.es).
+export type SeatsResult =
+  | { ok: true; seats: Seats; matchedArrival?: string }
+  | { ok: true; full: true; checkedAt: string; matchedArrival?: string } // autobusing marca la salida como «Completo»
+  | { ok: false; reason: string };
+
+export type FetchSeatsOptions = {
+  fetchImpl?: typeof fetch;
+  now?: () => Date;
+  // permitir emparejar solo por salida; el llamante lo activa cuando samar.es no tiene otro bus a esa hora
+  allowDepartureOnly?: boolean;
+};
 
 const BASE = 'https://regular.autobusing.es';
 
@@ -10,9 +21,17 @@ export function parseOrigenId(html: string): string | null {
   return html.match(/<input[^>]*id="venta_origen_id"[^>]*value="([^"]*)"/)?.[1] ?? null;
 }
 
-export function parseSchedule(html: string): { departure: string; arrival: string; nromov: string }[] {
-  return [...html.matchAll(/<tr><td class="radio"><input[^>]*value="(\d+)"[^>]*\/?><\/td><td><strong>(\d\d:\d\d)<\/strong><\/td><td><strong>(\d\d:\d\d)<\/strong><\/td>/g)]
-    .map((m) => ({ departure: m[2], arrival: m[3], nromov: m[1] }));
+export type ScheduleRow = { departure: string; arrival: string; nromov: string | null; full: boolean };
+
+// La celda «radio» tiene el botón de selección (con nromov) o un texto como «Completo».
+export function parseSchedule(html: string): ScheduleRow[] {
+  return [...html.matchAll(/<tr><td class="radio">([\s\S]*?)<\/td><td><strong>(\d\d:\d\d)<\/strong><\/td><td><strong>(\d\d:\d\d)<\/strong><\/td>/g)]
+    .map((m) => ({
+      departure: m[2],
+      arrival: m[3],
+      nromov: m[1].match(/<input[^>]*value="(\d+)"/)?.[1] ?? null,
+      full: /complet/i.test(m[1]),
+    }));
 }
 
 export function parseSeatMap(html: string): { when: string | null; free: number; occupied: number; total: number } {
@@ -27,8 +46,7 @@ const toSpanish = (date: string) => date.split('-').reverse().join('/'); // 2026
 export async function fetchSeats(
   trip: Trip,
   date: string,
-  fetchImpl: typeof fetch = fetch,
-  now: () => Date = () => new Date(),
+  { fetchImpl = fetch, now = () => new Date(), allowDepartureOnly = false }: FetchSeatsOptions = {},
 ): Promise<SeatsResult> {
   let cookie = '';
   let lastRedirect = '';
@@ -68,17 +86,24 @@ export async function fetchSeats(
     'venta[tipo_iyv]': 'ida',
   }));
 
-  const matches = parseSchedule(await request('/venta/horarios'))
-    .filter((r) => r.departure === trip.departure && r.arrival === trip.arrival);
+  const sameDeparture = parseSchedule(await request('/venta/horarios')).filter((r) => r.departure === trip.departure);
+  const exact = sameDeparture.filter((r) => r.arrival === trip.arrival);
+  const matches = exact.length === 1 ? exact : allowDepartureOnly && sameDeparture.length === 1 ? sameDeparture : [];
   if (matches.length !== 1) return { ok: false, reason: 'No encontrado en autobusing' };
+  const row = matches[0];
+  const matchedArrival = row.arrival !== trip.arrival ? { matchedArrival: row.arrival } : {};
+  if (row.full) return { ok: true, full: true, checkedAt: now().toISOString(), ...matchedArrival };
+  if (!row.nromov) return { ok: false, reason: 'autobusing no permite seleccionar este bus' };
 
-  await request('/venta/horarios', new URLSearchParams({ 'venta[elegir_plazas_ida]': 't', 'venta[nromov_ida]': matches[0].nromov }));
+  await request('/venta/horarios', new URLSearchParams({ 'venta[elegir_plazas_ida]': 't', 'venta[nromov_ida]': row.nromov }));
   // si autobusing rechaza la selección, la sesión seguiría en el bus que eligió /venta/inicio (quizá otro a la misma hora)
+  // sin elección de asiento autobusing salta a los datos del viajero: ahí no se entra
+  if (lastRedirect.endsWith('/venta/viajeros')) return { ok: false, reason: 'Este bus no tiene elección de asiento en la venta online' };
   if (!lastRedirect.endsWith('/venta/plazas')) return { ok: false, reason: 'autobusing no aceptó la selección del bus' };
 
   const map = parseSeatMap(await request('/venta/plazas'));
   if (map.when !== `${fecha} ${trip.departure}` || map.total === 0) {
     return { ok: false, reason: 'La respuesta no corresponde al bus' };
   }
-  return { ok: true, seats: { free: map.free, occupied: map.occupied, total: map.total, checkedAt: now().toISOString() } };
+  return { ok: true, seats: { free: map.free, occupied: map.occupied, total: map.total, checkedAt: now().toISOString() }, ...matchedArrival };
 }
