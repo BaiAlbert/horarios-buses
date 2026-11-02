@@ -70,6 +70,9 @@ export default function TripCard({ trip, dir, date, hideItinerary }: { trip: Tri
           <div className={'full' in seats.result ? 'seats-full' : 'seats-ok'}>
             {'full' in seats.result ? (
               <p><strong>Completo:</strong> no quedan plazas <small>(consultado {madridTime(seats.result.checkedAt)})</small></p>
+            ) : 'available' in seats.result ? (
+              <p><strong>Quedan plazas</strong> <small>(consultado {madridTime(seats.result.checkedAt)})</small><br />
+                <small>Este bus no tiene elección de asiento en la venta online, así que no se puede saber cuántas.</small></p>
             ) : (
               <p><strong>{seats.result.seats.free} libres</strong> · {seats.result.seats.occupied} ocupadas · {seats.result.seats.total} totales{' '}
                 <small>(consultado {madridTime(seats.result.seats.checkedAt)})</small></p>

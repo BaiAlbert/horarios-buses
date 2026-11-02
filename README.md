@@ -44,5 +44,5 @@ Si `APP_PASSWORD` no está definida, nadie puede entrar.
 - Las plazas se buscan en autobusing por hora de salida y llegada.
   - Si solo coincide la salida, y no hay otro bus de Samar a esa hora, se muestran con un aviso.
   - Si autobusing marca el bus como «Completo», se indica que no quedan plazas.
-  - Algunos buses no tienen elección de asiento en la venta online. En esos no se pueden ver las plazas.
+  - Algunos buses, sobre todo de ruta, no tienen elección de asiento en la venta online. Autobusing no da su número de plazas, ni siquiera en la pantalla de datos del viajero. Si no están marcados como «Completo», la web indica «Quedan plazas» sin cifra.
 - Algunas 909 continúan hasta el aeropuerto. Sus plazas se muestran sin aviso.

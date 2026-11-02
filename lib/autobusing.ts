@@ -6,6 +6,7 @@ export type Seats = { free: number; occupied: number; total: number; checkedAt: 
 export type SeatsResult =
   | { ok: true; seats: Seats; matchedArrival?: string }
   | { ok: true; full: true; checkedAt: string; matchedArrival?: string } // autobusing marca la salida como «Completo»
+  | { ok: true; available: true; checkedAt: string; matchedArrival?: string } // sin mapa de asientos, pero no está completo
   | { ok: false; reason: string };
 
 export type FetchSeatsOptions = {
@@ -115,8 +116,9 @@ export async function fetchSeats(
 
   await request('/venta/horarios', new URLSearchParams({ 'venta[elegir_plazas_ida]': 't', 'venta[nromov_ida]': row.nromov }));
   // si autobusing rechaza la selección, la sesión seguiría en el bus que eligió /venta/inicio (quizá otro a la misma hora)
-  // sin elección de asiento autobusing salta a los datos del viajero: ahí no se entra
-  if (lastRedirect.endsWith('/venta/viajeros')) return { ok: false, reason: 'Este bus no tiene elección de asiento en la venta online' };
+  // sin elección de asiento autobusing salta a los datos del viajero (no muestra plazas; no se entra). Como la fila
+  // no estaba «Completo», quedan plazas aunque no se sepa cuántas.
+  if (lastRedirect.endsWith('/venta/viajeros')) return { ok: true, available: true, checkedAt: now().toISOString(), ...matchedArrival };
   if (!lastRedirect.endsWith('/venta/plazas')) return { ok: false, reason: 'autobusing no aceptó la selección del bus' };
 
   const map = parseSeatMap(await request('/venta/plazas'));

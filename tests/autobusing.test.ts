@@ -143,10 +143,10 @@ test('fetchSeats: el bus está completo → full, sin seleccionar bus ni pedir p
   assert.deepEqual(calls.map((c) => `${c.method} ${c.path}`), ['GET /venta/inicio_info', 'POST /venta/inicio', 'GET /venta/horarios']);
 });
 
-test('fetchSeats: autobusing salta a /venta/viajeros (bus sin elección de asiento) → ok:false con motivo claro', async () => {
+test('fetchSeats: bus sin elección de asiento (salta a /venta/viajeros) y no «Completo» → quedan plazas, sin número', async () => {
   const { calls, fetchImpl } = fakeAutobusing({ horariosPost: () => new Response(null, { status: 302, headers: { location: '/venta/viajeros' } }) });
-  const r = await fetchSeats(trip0730, '2026-11-03', { fetchImpl });
-  assert.deepEqual(r, { ok: false, reason: 'Este bus no tiene elección de asiento en la venta online' });
+  const r = await fetchSeats(trip0730, '2026-11-03', { fetchImpl, now: () => new Date('2026-11-02T21:00:00Z') });
+  assert.deepEqual(r, { ok: true, available: true, checkedAt: '2026-11-02T21:00:00.000Z' });
   assert.ok(!calls.some((c) => c.path === '/venta/viajeros' || c.path === '/venta/plazas'));
 });
 
