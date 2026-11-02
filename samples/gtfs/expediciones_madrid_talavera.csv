@@ -1,0 +1,139 @@
+linea,nombre,trip_id,sentido,madrid,salida,llegada,intermedias,santa_olalla,duracion_min,paradas,dias_LMXJVSD
+909,MADRID-TALAVERA (DIRECTO),909059,Madrid→Talavera,Estación Sur,06:30,07:50,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,0000001
+909,MADRID-TALAVERA (DIRECTO),909001,Madrid→Talavera,Estación Sur,07:00,08:20,2,True,80,Madrid-Estacion Sur > Quismondo > Santa Olalla > Talavera de La Reina,1111100
+907,MADRID-PUEBLA DE MONTALBAN-TALAVERA,907001,Madrid→Talavera,Estación Sur,07:15,10:20,18,False,185,Madrid-Estacion Sur > Alcorcon > Mostoles > Urb.Calypo > Urb.Fado > Valmojado > Santa Cruz del Retamar > Noves > Torrijos > Gerindote > Escalonilla > Puebla de Montalbán > Carpio de Tajo > Malpica de Tajo > Cebolla > Illán de Vacas > Cerralbos > lucillos > Montearagon > Talavera de La Reina,1111110
+909,MADRID-TALAVERA (DIRECTO),909061,Madrid→Talavera,Estación Sur,07:30,08:50,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,0000010
+910,MADRID-TALAVERA (RUTA),910001,Madrid→Talavera,Estación Sur,07:30,09:25,11,True,115,Madrid-Estacion Sur > Alcorcon > Mostoles > Navalcarnero > Urb.Calypo > Urb.Fado > Valmojado > Santa Cruz del Retamar > Quismondo > Maqueda > Santa Olalla > Cruce El Bravo > Talavera de La Reina,1111111
+901,MADRID-DON BENITO,901001,Madrid→Talavera,Estación Sur,08:00,09:45,2,False,105,Madrid-Estacion Sur > Alcorcon > Mostoles > Talavera de La Reina,1111100
+902,MADRID-MIAJADAS,902001,Madrid→Talavera,Estación Sur,08:00,09:45,2,False,105,Madrid-Estacion Sur > Alcorcon > Mostoles > Talavera de La Reina,1111100
+903,MADRID-SIRUELA,903012,Madrid→Talavera,Estación Sur,08:00,09:45,2,False,105,Madrid-Estacion Sur > Alcorcon > Mostoles > Talavera de La Reina,1111100
+904,MADRID-MONASTERIO DE YUSTE,904001,Madrid→Talavera,Estación Sur,08:30,10:30,0,False,120,Madrid-Estacion Sur > Talavera de La Reina,1111100
+909,MADRID-TALAVERA (DIRECTO),909002,Madrid→Talavera,Estación Sur,08:30,09:50,1,True,80,Madrid-Estacion Sur > Santa Olalla > Talavera de La Reina,1111100
+910,MADRID-TALAVERA (RUTA),910022,Madrid→Talavera,Estación Sur,08:30,10:25,10,True,115,Madrid-Estacion Sur > Alcorcon > Mostoles > Urb.Calypo > Urb.Fado > Valmojado > Santa Cruz del Retamar > Quismondo > Maqueda > Santa Olalla > Cruce El Bravo > Talavera de La Reina,0000010
+910,MADRID-TALAVERA (RUTA),910003,Madrid→Talavera,Estación Sur,09:30,11:30,13,True,120,Madrid-Estacion Sur > Alcorcon > Mostoles > Navalcarnero > Urb.Calypo > Urb.Fado > Valmojado > Santa Cruz del Retamar > Quismondo > Maqueda > Santa Olalla > Cruce El Bravo > Empalme Cerralbos > Cruce de Cazalegas > Talavera de La Reina,1111111
+901,MADRID-DON BENITO,901005,Madrid→Talavera,Estación Sur,10:00,11:45,2,False,105,Madrid-Estacion Sur > Alcorcon > Mostoles > Talavera de La Reina,0000010
+902,MADRID-MIAJADAS,902007,Madrid→Talavera,Estación Sur,10:00,11:45,2,False,105,Madrid-Estacion Sur > Alcorcon > Mostoles > Talavera de La Reina,0000010
+903,MADRID-SIRUELA,903008,Madrid→Talavera,Estación Sur,10:00,11:45,2,False,105,Madrid-Estacion Sur > Alcorcon > Mostoles > Talavera de La Reina,0000010
+909,MADRID-TALAVERA (DIRECTO),909003,Madrid→Talavera,Estación Sur,10:00,11:20,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,1111111
+904,MADRID-MONASTERIO DE YUSTE,904002,Madrid→Talavera,Estación Sur,11:00,12:40,2,False,100,Madrid-Estacion Sur > Alcorcon > Mostoles > Talavera de La Reina,0000011
+905,MADRID-PERALEDA DE LA MATA,905001,Madrid→Talavera,Estación Sur,11:00,12:30,0,False,90,Madrid-Estacion Sur > Talavera de La Reina,0000010
+909,MADRID-TALAVERA (DIRECTO),909008,Madrid→Talavera,Estación Sur,11:00,12:20,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,1111111
+910,MADRID-TALAVERA (RUTA),910004,Madrid→Talavera,Estación Sur,11:15,13:05,10,True,110,Madrid-Estacion Sur > Alcorcon > Mostoles > Urb.Calypo > Urb.Fado > Valmojado > Santa Cruz del Retamar > Quismondo > Maqueda > Santa Olalla > Cruce El Bravo > Talavera de La Reina,1111111
+905,MADRID-PERALEDA DE LA MATA,905002,Madrid→Talavera,Estación Sur,12:00,13:30,0,False,90,Madrid-Estacion Sur > Talavera de La Reina,1111100
+909,MADRID-TALAVERA (DIRECTO),909005,Madrid→Talavera,Estación Sur,12:00,13:20,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,1111111
+910,MADRID-TALAVERA (RUTA),910044,Madrid→Talavera,Estación Sur,12:30,14:05,3,True,95,Madrid-Estacion Sur > Valmojado > Santa Cruz del Retamar > Santa Olalla > Talavera de La Reina,1111100
+909,MADRID-TALAVERA (DIRECTO),909006,Madrid→Talavera,Estación Sur,13:00,14:20,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,1111111
+910,MADRID-TALAVERA (RUTA),910005,Madrid→Talavera,Estación Sur,13:00,15:00,13,True,120,Madrid-Estacion Sur > Alcorcon > Mostoles > Navalcarnero > Urb.Calypo > Urb.Fado > Valmojado > Santa Cruz del Retamar > Quismondo > Maqueda > Santa Olalla > Cruce El Bravo > Empalme Cerralbos > Cruce de Cazalegas > Talavera de La Reina,1111110
+910,MADRID-TALAVERA (RUTA),910037,Madrid→Talavera,Estación Sur,13:00,15:00,9,True,120,Madrid-Estacion Sur > Alcorcon > Mostoles > Urb.Calypo > Valmojado > Santa Cruz del Retamar > Quismondo > Maqueda > Santa Olalla > Cruce El Bravo > Talavera de La Reina,0000001
+909,MADRID-TALAVERA (DIRECTO),909007,Madrid→Talavera,Estación Sur,14:00,15:20,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,1111111
+910,MADRID-TALAVERA (RUTA),910006,Madrid→Talavera,Estación Sur,14:00,15:50,9,True,110,Madrid-Estacion Sur > Alcorcon > Mostoles > Urb.Calypo > Valmojado > Santa Cruz del Retamar > Quismondo > Maqueda > Santa Olalla > Cruce El Bravo > Talavera de La Reina,1111110
+910,MADRID-TALAVERA (RUTA),910007,Madrid→Talavera,Estación Sur,14:00,16:00,11,True,120,Madrid-Estacion Sur > Alcorcon > Mostoles > Urb.Calypo > Valmojado > Santa Cruz del Retamar > Quismondo > Maqueda > Santa Olalla > Cruce El Bravo > Empalme Cerralbos > Cruce de Cazalegas > Talavera de La Reina,0000001
+909,MADRID-TALAVERA (DIRECTO),909011,Madrid→Talavera,Estación Sur,14:30,15:50,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,1111100
+901,MADRID-DON BENITO,901002,Madrid→Talavera,Estación Sur,15:00,16:45,2,False,105,Madrid-Estacion Sur > Alcorcon > Mostoles > Talavera de La Reina,1111100
+902,MADRID-MIAJADAS,902002,Madrid→Talavera,Estación Sur,15:00,16:45,2,False,105,Madrid-Estacion Sur > Alcorcon > Mostoles > Talavera de La Reina,1111110
+903,MADRID-SIRUELA,903002,Madrid→Talavera,Estación Sur,15:00,16:45,2,False,105,Madrid-Estacion Sur > Alcorcon > Mostoles > Talavera de La Reina,1111100
+903,MADRID-SIRUELA,903003,Madrid→Talavera,Estación Sur,15:00,16:45,2,False,105,Madrid-Estacion Sur > Alcorcon > Mostoles > Talavera de La Reina,0000010
+909,MADRID-TALAVERA (DIRECTO),909013,Madrid→Talavera,Estación Sur,15:00,16:20,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,1111111
+910,MADRID-TALAVERA (RUTA),910008,Madrid→Talavera,Estación Sur,15:00,16:50,10,True,110,Madrid-Estacion Sur > Alcorcon > Mostoles > Urb.Calypo > Urb.Fado > Valmojado > Santa Cruz del Retamar > Quismondo > Maqueda > Santa Olalla > Cruce El Bravo > Talavera de La Reina,1111110
+904,MADRID-MONASTERIO DE YUSTE,904005,Madrid→Talavera,Estación Sur,15:15,16:45,0,False,90,Madrid-Estacion Sur > Talavera de La Reina,0000100
+909,MADRID-TALAVERA (DIRECTO),909015,Madrid→Talavera,Estación Sur,15:30,16:50,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,1111100
+909,MADRID-TALAVERA (DIRECTO),909016,Madrid→Talavera,Estación Sur,16:00,17:20,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,1111111
+910,MADRID-TALAVERA (RUTA),910009,Madrid→Talavera,Estación Sur,16:00,18:00,13,True,120,Madrid-Estacion Sur > Alcorcon > Mostoles > Navalcarnero > Urb.Calypo > Urb.Fado > Valmojado > Santa Cruz del Retamar > Quismondo > Maqueda > Santa Olalla > Cruce El Bravo > Empalme Cerralbos > Cruce de Cazalegas > Talavera de La Reina,1111110
+910,MADRID-TALAVERA (RUTA),910018,Madrid→Talavera,Estación Sur,16:00,18:00,10,True,120,Madrid-Estacion Sur > Alcorcon > Mostoles > Urb.Calypo > Urb.Fado > Valmojado > Santa Cruz del Retamar > Quismondo > Maqueda > Santa Olalla > Cruce El Bravo > Talavera de La Reina,0000001
+907,MADRID-PUEBLA DE MONTALBAN-TALAVERA,907003,Madrid→Talavera,Estación Sur,16:30,19:15,16,False,165,Madrid-Estacion Sur > Alcorcon > Mostoles > Urb.Calypo > Urb.Fado > Valmojado > Santa Cruz del Retamar > Noves > Torrijos > Gerindote > Escalonilla > Puebla de Montalbán > Carpio de Tajo > Malpica de Tajo > Cebolla > Illán de Vacas > Cerralbos > Talavera de La Reina,1111100
+909,MADRID-TALAVERA (DIRECTO),909018,Madrid→Talavera,Estación Sur,16:45,18:05,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,1111100
+901,MADRID-DON BENITO,901003,Madrid→Talavera,Estación Sur,17:00,18:45,2,False,105,Madrid-Estacion Sur > Alcorcon > Mostoles > Talavera de La Reina,0000001
+902,MADRID-MIAJADAS,902005,Madrid→Talavera,Estación Sur,17:00,18:45,2,False,105,Madrid-Estacion Sur > Alcorcon > Mostoles > Talavera de La Reina,0000001
+903,MADRID-SIRUELA,903007,Madrid→Talavera,Estación Sur,17:00,18:45,2,False,105,Madrid-Estacion Sur > Alcorcon > Mostoles > Talavera de La Reina,0000001
+909,MADRID-TALAVERA (DIRECTO),909020,Madrid→Talavera,Estación Sur,17:15,18:35,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,1111111
+910,MADRID-TALAVERA (RUTA),910010,Madrid→Talavera,Estación Sur,17:15,19:05,10,True,110,Madrid-Estacion Sur > Alcorcon > Mostoles > Urb.Calypo > Urb.Fado > Valmojado > Santa Cruz del Retamar > Quismondo > Maqueda > Santa Olalla > Cruce El Bravo > Talavera de La Reina,1111111
+910,MADRID-TALAVERA (RUTA),910011,Madrid→Talavera,Estación Sur,17:15,19:15,11,True,120,Madrid-Estacion Sur > Alcorcon > Mostoles > Urb.Calypo > Valmojado > Santa Cruz del Retamar > Quismondo > Maqueda > Santa Olalla > Cruce El Bravo > Empalme Cerralbos > Cruce de Cazalegas > Talavera de La Reina,0000001
+909,MADRID-TALAVERA (DIRECTO),909022,Madrid→Talavera,Estación Sur,18:00,19:20,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,1111111
+909,MADRID-TALAVERA (DIRECTO),909023,Madrid→Talavera,Estación Sur,18:30,19:50,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,1111100
+909,MADRID-TALAVERA (DIRECTO),909024,Madrid→Talavera,Estación Sur,19:00,20:20,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,1111111
+910,MADRID-TALAVERA (RUTA),910012,Madrid→Talavera,Estación Sur,19:00,21:00,13,True,120,Madrid-Estacion Sur > Alcorcon > Mostoles > Navalcarnero > Urb.Calypo > Urb.Fado > Valmojado > Santa Cruz del Retamar > Quismondo > Maqueda > Santa Olalla > Cruce El Bravo > Empalme Cerralbos > Cruce de Cazalegas > Talavera de La Reina,1111111
+907,MADRID-PUEBLA DE MONTALBAN-TALAVERA,907009,Madrid→Talavera,Estación Sur,19:15,22:20,16,False,185,Madrid-Estacion Sur > Alcorcon > Mostoles > Urb.Calypo > Urb.Fado > Valmojado > Santa Cruz del Retamar > Noves > Torrijos > Gerindote > Escalonilla > Puebla de Montalbán > Carpio de Tajo > Malpica de Tajo > Cebolla > Illán de Vacas > Cerralbos > Talavera de La Reina,0000010
+909,MADRID-TALAVERA (DIRECTO),909025,Madrid→Talavera,Estación Sur,19:30,20:50,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,1111101
+909,MADRID-TALAVERA (DIRECTO),909034,Madrid→Talavera,Estación Sur,20:00,21:20,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,1111111
+910,MADRID-TALAVERA (RUTA),910013,Madrid→Talavera,Estación Sur,20:00,21:50,10,True,110,Madrid-Estacion Sur > Alcorcon > Mostoles > Urb.Calypo > Urb.Fado > Valmojado > Santa Cruz del Retamar > Quismondo > Maqueda > Santa Olalla > Cruce El Bravo > Talavera de La Reina,0000011
+910,MADRID-TALAVERA (RUTA),910019,Madrid→Talavera,Estación Sur,20:15,22:00,10,True,105,Madrid-Estacion Sur > Alcorcon > Mostoles > Urb.Calypo > Urb.Fado > Valmojado > Santa Cruz del Retamar > Quismondo > Maqueda > Santa Olalla > Cruce El Bravo > Talavera de La Reina,1111100
+909,MADRID-TALAVERA (DIRECTO),909004,Madrid→Talavera,Estación Sur,20:30,21:50,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,0000001
+909,MADRID-TALAVERA (DIRECTO),909028,Madrid→Talavera,Estación Sur,21:00,22:20,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,0000011
+909,MADRID-TALAVERA (DIRECTO),909029,Madrid→Talavera,Estación Sur,21:00,22:20,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,1111100
+910,MADRID-TALAVERA (RUTA),910014,Madrid→Talavera,Estación Sur,21:30,23:20,10,True,110,Madrid-Estacion Sur > Alcorcon > Mostoles > Urb.Calypo > Urb.Fado > Valmojado > Santa Cruz del Retamar > Quismondo > Maqueda > Santa Olalla > Cruce El Bravo > Talavera de La Reina,1111111
+909,MADRID-TALAVERA (DIRECTO),909030,Madrid→Talavera,Estación Sur,22:00,23:20,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,1111111
+909,MADRID-TALAVERA (DIRECTO),909027,Madrid→Talavera,Estación Sur,22:30,23:50,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,0000001
+909,MADRID-TALAVERA (DIRECTO),909056,Madrid→Talavera,Estación Sur,23:00,24:20,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,1111110
+910,MADRID-TALAVERA (RUTA),910015,Madrid→Talavera,Estación Sur,23:00,24:50,10,True,110,Madrid-Estacion Sur > Alcorcon > Mostoles > Urb.Calypo > Urb.Fado > Valmojado > Santa Cruz del Retamar > Quismondo > Maqueda > Santa Olalla > Cruce El Bravo > Talavera de La Reina,0000001
+910,MADRID-TALAVERA (RUTA),910021,Madrid→Talavera,Estación Sur,23:00,24:45,7,True,105,Madrid-Estacion Sur > Alcorcon > Mostoles > Valmojado > Santa Cruz del Retamar > Quismondo > Maqueda > Santa Olalla > Talavera de La Reina,1111110
+909,MADRID-TALAVERA (DIRECTO),909021,Madrid→Talavera,Estación Sur,23:30,24:50,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,0000001
+909,MADRID-TALAVERA (DIRECTO),909060,Madrid→Talavera,Estación Sur,23:45,01:05,0,False,80,Madrid-Estacion Sur > Talavera de La Reina,0000010
+910,MADRID-TALAVERA (RUTA),910027,Madrid→Talavera,Estación Sur,23:45,01:40,9,True,115,Madrid-Estacion Sur > Alcorcon > Mostoles > Urb.Calypo > Valmojado > Santa Cruz del Retamar > Quismondo > Maqueda > Santa Olalla > Cruce El Bravo > Talavera de La Reina,1111110
+909,MADRID-TALAVERA (DIRECTO),909537,Talavera→Madrid,Estación Sur,05:00,06:05,0,False,65,Talavera de La Reina > Madrid-Estacion Sur,1111100
+909,MADRID-TALAVERA (DIRECTO),909501,Talavera→Madrid,Estación Sur,05:15,06:35,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,1111111
+910,MADRID-TALAVERA (RUTA),910501,Talavera→Madrid,Estación Sur,05:15,07:05,6,True,110,Talavera de La Reina > Cruce El Bravo > Cruce El Bravo > Santa Olalla > Maqueda > Quismondo > Mostoles > Alcorcon > Madrid-Estacion Sur,1111100
+910,MADRID-TALAVERA (RUTA),910511,Talavera→Madrid,Estación Sur,05:15,07:05,7,True,110,Talavera de La Reina > Cruce El Bravo > Santa Olalla > Maqueda > Quismondo > Santa Cruz del Retamar > Mostoles > Alcorcon > Madrid-Estacion Sur,0000010
+909,MADRID-TALAVERA (DIRECTO),909528,Talavera→Madrid,Estación Sur,05:45,07:05,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,1111100
+909,MADRID-TALAVERA (DIRECTO),909530,Talavera→Madrid,Estación Sur,05:45,06:50,0,False,65,Talavera de La Reina > Madrid-Estacion Sur,1111100
+909,MADRID-TALAVERA (DIRECTO),909507,Talavera→Madrid,Estación Sur,06:00,07:20,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,1111100
+910,MADRID-TALAVERA (RUTA),910502,Talavera→Madrid,Estación Sur,06:00,07:50,10,True,110,Talavera de La Reina > Cruce El Bravo > Cruce El Bravo > Santa Olalla > Maqueda > Quismondo > Santa Cruz del Retamar > Valmojado > Urb.Calypo > Urb.Fado > Mostoles > Alcorcon > Madrid-Estacion Sur,1111100
+909,MADRID-TALAVERA (DIRECTO),909505,Talavera→Madrid,Estación Sur,06:30,07:50,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,1111100
+909,MADRID-TALAVERA (DIRECTO),909503,Talavera→Madrid,Estación Sur,07:00,08:20,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,1111111
+909,MADRID-TALAVERA (DIRECTO),909519,Talavera→Madrid,Estación Sur,07:00,09:00,5,True,120,Talavera de La Reina > Santa Olalla > Santa Cruz del Retamar > Valmojado > Mostoles > Alcorcon > Madrid-Estacion Sur,1111100
+910,MADRID-TALAVERA (RUTA),910503,Talavera→Madrid,Estación Sur,07:00,09:00,13,True,120,Talavera de La Reina > Cruce de Cazalegas > Empalme Cerralbos > Cruce El Bravo > Santa Olalla > Maqueda > Quismondo > Santa Cruz del Retamar > Valmojado > Urb.Calypo > Urb.Fado > Navalcarnero > Mostoles > Alcorcon > Madrid-Estacion Sur,1111111
+909,MADRID-TALAVERA (DIRECTO),909532,Talavera→Madrid,Estación Sur,07:30,08:50,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,0000010
+909,MADRID-TALAVERA (DIRECTO),909504,Talavera→Madrid,Estación Sur,08:00,09:20,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,1111111
+909,MADRID-TALAVERA (DIRECTO),909536,Talavera→Madrid,Estación Sur,08:30,09:50,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,1111100
+905,MADRID-PERALEDA DE LA MATA,905502,Talavera→Madrid,Estación Sur,09:00,10:20,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,0000010
+909,MADRID-TALAVERA (DIRECTO),909506,Talavera→Madrid,Estación Sur,09:00,10:20,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,1111110
+907,MADRID-PUEBLA DE MONTALBAN-TALAVERA,907523,Talavera→Madrid,Estación Sur,09:15,12:25,17,False,190,Talavera de La Reina > Montearagon > lucillos > Cerralbos > Cebolla > Illán de Vacas > Malpica de Tajo > Carpio de Tajo > Puebla de Montalbán > Escalonilla > Gerindote > Torrijos > Noves > Santa Cruz del Retamar > Valmojado > Urb.Calypo > Mostoles > Alcorcon > Madrid-Estacion Sur,1111100
+909,MADRID-TALAVERA (DIRECTO),909534,Talavera→Madrid,Estación Sur,09:30,10:50,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,0000001
+910,MADRID-TALAVERA (RUTA),910504,Talavera→Madrid,Estación Sur,09:30,11:20,10,True,110,Talavera de La Reina > Cruce El Bravo > Santa Olalla > Maqueda > Quismondo > Santa Cruz del Retamar > Valmojado > Urb.Calypo > Urb.Fado > Mostoles > Alcorcon > Madrid-Estacion Sur,1111101
+909,MADRID-TALAVERA (DIRECTO),909508,Talavera→Madrid,Estación Sur,10:00,11:20,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,0000010
+904,MADRID-MONASTERIO DE YUSTE,904501,Talavera→Madrid,Estación Sur,10:15,11:35,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,1111100
+905,MADRID-PERALEDA DE LA MATA,905501,Talavera→Madrid,Estación Sur,10:30,12:00,0,False,90,Talavera de La Reina > Madrid-Estacion Sur,1111100
+909,MADRID-TALAVERA (DIRECTO),909509,Talavera→Madrid,Estación Sur,10:30,11:50,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,1111111
+910,MADRID-TALAVERA (RUTA),910505,Talavera→Madrid,Estación Sur,10:30,12:30,13,True,120,Talavera de La Reina > Cruce de Cazalegas > Empalme Cerralbos > Cruce El Bravo > Cruce El Bravo > Santa Olalla > Maqueda > Quismondo > Santa Cruz del Retamar > Valmojado > Urb.Calypo > Urb.Fado > Navalcarnero > Mostoles > Alcorcon > Madrid-Estacion Sur,1111111
+909,MADRID-TALAVERA (DIRECTO),909510,Talavera→Madrid,Estación Sur,11:00,12:20,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,1111100
+901,MADRID-DON BENITO,901501,Talavera→Madrid,Estación Sur,11:15,13:10,2,False,115,Talavera de La Reina > Mostoles > Alcorcon > Madrid-Estacion Sur,1111100
+901,MADRID-DON BENITO,901503,Talavera→Madrid,Estación Sur,11:15,13:10,2,False,115,Talavera de La Reina > Mostoles > Alcorcon > Madrid-Estacion Sur,0000010
+902,MADRID-MIAJADAS,902502,Talavera→Madrid,Estación Sur,11:15,13:10,2,False,115,Talavera de La Reina > Mostoles > Alcorcon > Madrid-Estacion Sur,1111100
+903,MADRID-SIRUELA,903502,Talavera→Madrid,Estación Sur,11:15,13:15,2,False,120,Talavera de La Reina > Mostoles > Alcorcon > Madrid-Estacion Sur,1111100
+903,MADRID-SIRUELA,903507,Talavera→Madrid,Estación Sur,11:15,13:15,2,False,120,Talavera de La Reina > Mostoles > Alcorcon > Madrid-Estacion Sur,0000010
+902,MADRID-MIAJADAS,902503,Talavera→Madrid,Estación Sur,11:45,13:10,2,False,85,Talavera de La Reina > Mostoles > Alcorcon > Madrid-Estacion Sur,0000010
+907,MADRID-PUEBLA DE MONTALBAN-TALAVERA,907510,Talavera→Madrid,Estación Sur,11:45,14:55,17,False,190,Talavera de La Reina > Montearagon > lucillos > Cerralbos > Cebolla > Illán de Vacas > Malpica de Tajo > Carpio de Tajo > Puebla de Montalbán > Escalonilla > Gerindote > Torrijos > Noves > Santa Cruz del Retamar > Valmojado > Urb.Calypo > Mostoles > Alcorcon > Madrid-Estacion Sur,1111110
+909,MADRID-TALAVERA (DIRECTO),909511,Talavera→Madrid,Estación Sur,12:00,13:20,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,0000011
+909,MADRID-TALAVERA (DIRECTO),909512,Talavera→Madrid,Estación Sur,12:30,13:50,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,1111111
+910,MADRID-TALAVERA (RUTA),910506,Talavera→Madrid,Estación Sur,12:30,14:20,10,True,110,Talavera de La Reina > Cruce El Bravo > Cruce El Bravo > Santa Olalla > Maqueda > Quismondo > Santa Cruz del Retamar > Valmojado > Urb.Calypo > Urb.Fado > Mostoles > Alcorcon > Madrid-Estacion Sur,1111111
+909,MADRID-TALAVERA (DIRECTO),909513,Talavera→Madrid,Estación Sur,13:00,14:20,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,1111110
+907,MADRID-PUEBLA DE MONTALBAN-TALAVERA,907515,Talavera→Madrid,Estación Sur,13:45,17:05,18,False,200,Talavera de La Reina > Montearagon > lucillos > Cerralbos > Illán de Vacas > Cebolla > Malpica de Tajo > Carpio de Tajo > Puebla de Montalbán > Escalonilla > Gerindote > Torrijos > Noves > Santa Cruz del Retamar > Valmojado > Urb.Calypo > Navalcarnero > Mostoles > Alcorcon > Madrid-Estacion Sur,0000010
+909,MADRID-TALAVERA (DIRECTO),909514,Talavera→Madrid,Estación Sur,14:00,15:20,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,1111111
+910,MADRID-TALAVERA (RUTA),910507,Talavera→Madrid,Estación Sur,14:00,16:00,13,True,120,Talavera de La Reina > Cruce de Cazalegas > Empalme Cerralbos > Cruce El Bravo > Cruce El Bravo > Santa Olalla > Maqueda > Quismondo > Santa Cruz del Retamar > Valmojado > Urb.Calypo > Urb.Fado > Navalcarnero > Mostoles > Alcorcon > Madrid-Estacion Sur,1111111
+909,MADRID-TALAVERA (DIRECTO),909533,Talavera→Madrid,Estación Sur,14:30,15:50,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,0000001
+909,MADRID-TALAVERA (DIRECTO),909515,Talavera→Madrid,Estación Sur,15:00,16:20,1,True,80,Talavera de La Reina > Santa Olalla > Madrid-Estacion Sur,1111110
+909,MADRID-TALAVERA (DIRECTO),909516,Talavera→Madrid,Estación Sur,15:00,16:20,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,0000001
+904,MADRID-MONASTERIO DE YUSTE,904505,Talavera→Madrid,Estación Sur,16:00,17:35,0,False,95,Talavera de La Reina > Madrid-Estacion Sur,0000100
+909,MADRID-TALAVERA (DIRECTO),909517,Talavera→Madrid,Estación Sur,16:00,17:20,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,1111111
+907,MADRID-PUEBLA DE MONTALBAN-TALAVERA,907517,Talavera→Madrid,Estación Sur,17:00,20:20,19,False,200,Talavera de La Reina > Montearagon > lucillos > Empalme Cerralbos > Cerralbos > Illán de Vacas > Cebolla > Malpica de Tajo > Carpio de Tajo > Puebla de Montalbán > Escalonilla > Gerindote > Torrijos > Noves > Santa Cruz del Retamar > Valmojado > Urb.Fado > Urb.Calypo > Mostoles > Alcorcon > Madrid-Estacion Sur,1111100
+909,MADRID-TALAVERA (DIRECTO),909518,Talavera→Madrid,Estación Sur,17:00,18:20,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,1111111
+910,MADRID-TALAVERA (RUTA),910508,Talavera→Madrid,Estación Sur,17:00,19:00,13,True,120,Talavera de La Reina > Cruce de Cazalegas > Empalme Cerralbos > Cruce El Bravo > Cruce El Bravo > Santa Olalla > Maqueda > Quismondo > Santa Cruz del Retamar > Valmojado > Urb.Calypo > Urb.Fado > Navalcarnero > Mostoles > Alcorcon > Madrid-Estacion Sur,1111111
+907,MADRID-PUEBLA DE MONTALBAN-TALAVERA,907513,Talavera→Madrid,Estación Sur,17:15,20:20,18,False,185,Talavera de La Reina > Empalme Cerralbos > Cerralbos > Illán de Vacas > Cebolla > Malpica de Tajo > Carpio de Tajo > Puebla de Montalbán > Escalonilla > Gerindote > Torrijos > Noves > Santa Cruz del Retamar > Valmojado > Urb.Fado > Urb.Calypo > Navalcarnero > Mostoles > Alcorcon > Madrid-Estacion Sur,0000010
+909,MADRID-TALAVERA (DIRECTO),909520,Talavera→Madrid,Estación Sur,18:00,19:20,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,1111111
+902,MADRID-MIAJADAS,902505,Talavera→Madrid,Estación Sur,18:15,20:15,2,False,120,Talavera de La Reina > Mostoles > Alcorcon > Madrid-Estacion Sur,1111101
+903,MADRID-SIRUELA,903504,Talavera→Madrid,Estación Sur,18:15,20:15,2,False,120,Talavera de La Reina > Mostoles > Alcorcon > Madrid-Estacion Sur,0000001
+903,MADRID-SIRUELA,903505,Talavera→Madrid,Estación Sur,18:15,20:00,2,False,105,Talavera de La Reina > Mostoles > Alcorcon > Madrid-Estacion Sur,1111100
+901,MADRID-DON BENITO,901502,Talavera→Madrid,Estación Sur,18:30,20:15,2,False,105,Talavera de La Reina > Mostoles > Alcorcon > Madrid-Estacion Sur,1111101
+904,MADRID-MONASTERIO DE YUSTE,904504,Talavera→Madrid,Estación Sur,19:00,20:30,2,False,90,Talavera de La Reina > Mostoles > Alcorcon > Madrid-Estacion Sur,0000011
+905,MADRID-PERALEDA DE LA MATA,905503,Talavera→Madrid,Estación Sur,19:00,20:20,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,0000001
+909,MADRID-TALAVERA (DIRECTO),909522,Talavera→Madrid,Estación Sur,19:00,20:20,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,0000011
+909,MADRID-TALAVERA (DIRECTO),909523,Talavera→Madrid,Estación Sur,19:30,20:50,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,1111100
+910,MADRID-TALAVERA (RUTA),910509,Talavera→Madrid,Estación Sur,19:30,21:20,10,True,110,Talavera de La Reina > Cruce El Bravo > Cruce El Bravo > Santa Olalla > Maqueda > Quismondo > Santa Cruz del Retamar > Valmojado > Urb.Calypo > Urb.Fado > Mostoles > Alcorcon > Madrid-Estacion Sur,1111111
+909,MADRID-TALAVERA (DIRECTO),909524,Talavera→Madrid,Estación Sur,20:00,21:20,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,0000011
+902,MADRID-MIAJADAS,902504,Talavera→Madrid,Estación Sur,20:15,22:15,2,False,120,Talavera de La Reina > Mostoles > Alcorcon > Madrid-Estacion Sur,0000010
+903,MADRID-SIRUELA,903503,Talavera→Madrid,Estación Sur,20:15,22:00,2,False,105,Talavera de La Reina > Mostoles > Alcorcon > Madrid-Estacion Sur,0000010
+909,MADRID-TALAVERA (DIRECTO),909525,Talavera→Madrid,Estación Sur,20:30,21:50,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,1111100
+910,MADRID-TALAVERA (RUTA),910513,Talavera→Madrid,Estación Sur,20:30,22:25,10,True,115,Talavera de La Reina > Cruce El Bravo > Santa Olalla > Maqueda > Quismondo > Santa Cruz del Retamar > Valmojado > Urb.Calypo > Urb.Fado > Mostoles > Alcorcon > Madrid-Estacion Sur,1111100
+909,MADRID-TALAVERA (DIRECTO),909526,Talavera→Madrid,Estación Sur,21:00,22:20,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,0000111
+909,MADRID-TALAVERA (DIRECTO),909539,Talavera→Madrid,Estación Sur,21:00,22:20,1,True,80,Talavera de La Reina > Santa Olalla > Madrid-Estacion Sur,1111000
+909,MADRID-TALAVERA (DIRECTO),909527,Talavera→Madrid,Estación Sur,22:00,23:20,0,False,80,Talavera de La Reina > Madrid-Estacion Sur,1111110
+910,MADRID-TALAVERA (RUTA),910517,Talavera→Madrid,Estación Sur,23:00,01:00,5,True,120,Talavera de La Reina > Santa Olalla > Santa Cruz del Retamar > Valmojado > Mostoles > Alcorcon > Madrid-Estacion Sur,0000101

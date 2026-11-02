@@ -1,0 +1,144 @@
+{
+ "_request": {
+  "method": "GET",
+  "url": "https://www.samar.es/horarios/autobuses/madrid-estacion-sur/talavera-de-la-reina/341/261?IsOneWay=true&OutboundDate=2026-11-03",
+  "headers": {
+   "User-Agent": "<cualquiera de navegador>"
+  },
+  "cookies": "ninguna"
+ },
+ "_note": "Extraído del HTML con scripts/parse_resultados.py; recortado a pocas expediciones",
+ "total_en_respuesta": 46,
+ "expediciones": [
+  {
+   "expedition": "909001",
+   "line": "909",
+   "departure": "07:00",
+   "arrival": "08:20",
+   "duration": "01:20h",
+   "days": "LMXJV",
+   "price": "11.33",
+   "can_buy_online": "true",
+   "purchase_codes": [
+    "0108",
+    "0831"
+   ],
+   "stops": [
+    [
+     "Madrid-Estacion Sur",
+     "07:00"
+    ],
+    [
+     "Quismondo",
+     "07:45"
+    ],
+    [
+     "Santa Olalla",
+     "07:55"
+    ],
+    [
+     "Talavera de La Reina",
+     "08:20"
+    ]
+   ],
+   "intermediate": 2,
+   "santa_olalla": true
+  },
+  {
+   "expedition": "910001",
+   "line": "910",
+   "departure": "07:30",
+   "arrival": "09:25",
+   "duration": "01:55h",
+   "days": "LMXJVSD",
+   "price": "11.33",
+   "can_buy_online": "true",
+   "purchase_codes": [
+    "0108",
+    "0831"
+   ],
+   "stops": [
+    [
+     "Madrid-Estacion Sur",
+     "07:30"
+    ],
+    [
+     "Alcorcon",
+     "07:45"
+    ],
+    [
+     "Mostoles",
+     "07:55"
+    ],
+    [
+     "Navalcarnero",
+     "08:05"
+    ],
+    [
+     "Urb.Calypo",
+     "08:15"
+    ],
+    [
+     "Urb.Fado",
+     "08:17"
+    ],
+    [
+     "Valmojado",
+     "08:25"
+    ],
+    [
+     "Santa Cruz del Retamar",
+     "08:35"
+    ],
+    [
+     "Quismondo",
+     "08:45"
+    ],
+    [
+     "Maqueda",
+     "08:50"
+    ],
+    [
+     "Santa Olalla",
+     "08:55"
+    ],
+    [
+     "Cruce El Bravo",
+     "09:00"
+    ],
+    [
+     "Talavera de La Reina",
+     "09:25"
+    ]
+   ],
+   "intermediate": 11,
+   "santa_olalla": true
+  },
+  {
+   "expedition": "909003",
+   "line": "909",
+   "departure": "10:00",
+   "arrival": "11:20",
+   "duration": "01:20h",
+   "days": "LMXJVSD",
+   "price": "11.33",
+   "can_buy_online": "true",
+   "purchase_codes": [
+    "0108",
+    "0831"
+   ],
+   "stops": [
+    [
+     "Madrid-Estacion Sur",
+     "10:00"
+    ],
+    [
+     "Talavera de La Reina",
+     "11:20"
+    ]
+   ],
+   "intermediate": 0,
+   "santa_olalla": false
+  }
+ ]
+}

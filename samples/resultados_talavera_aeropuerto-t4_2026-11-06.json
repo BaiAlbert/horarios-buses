@@ -1,0 +1,48 @@
+{
+ "_request": {
+  "method": "GET",
+  "url": "https://www.samar.es/horarios/autobuses/talavera-de-la-reina/aeropuerto-barajas-t4/261/1119?IsOneWay=true&OutboundDate=2026-11-06",
+  "headers": {
+   "User-Agent": "<cualquiera de navegador>"
+  },
+  "cookies": "ninguna"
+ },
+ "_note": "Extraído del HTML con scripts/parse_resultados.py; recortado a pocas expediciones",
+ "total_en_respuesta": 1,
+ "expediciones": [
+  {
+   "expedition": "909528",
+   "line": "909",
+   "departure": "05:45",
+   "arrival": "08:15",
+   "duration": "02:30h",
+   "days": "LMXJV",
+   "price": "11.33",
+   "can_buy_online": "true",
+   "purchase_codes": [
+    "0831",
+    "1113"
+   ],
+   "stops": [
+    [
+     "Talavera de La Reina",
+     "05:45"
+    ],
+    [
+     "Madrid-Estacion Sur",
+     "07:05"
+    ],
+    [
+     "Aeropuerto Barajas T1",
+     "08:10"
+    ],
+    [
+     "Aeropuerto Barajas T4",
+     "08:15"
+    ]
+   ],
+   "intermediate": 2,
+   "santa_olalla": false
+  }
+ ]
+}

@@ -1,0 +1,164 @@
+{
+ "_request": {
+  "method": "GET",
+  "url": "https://www.samar.es/horarios/autobuses/talavera-de-la-reina/madrid-estacion-sur/261/341?IsOneWay=true&OutboundDate=2026-11-06",
+  "headers": {
+   "User-Agent": "<cualquiera de navegador>"
+  },
+  "cookies": "ninguna"
+ },
+ "_note": "Extraído del HTML con scripts/parse_resultados.py; recortado a pocas expediciones",
+ "total_en_respuesta": 48,
+ "expediciones": [
+  {
+   "expedition": "909528",
+   "line": "909",
+   "departure": "05:45",
+   "arrival": "07:05",
+   "duration": "01:20h",
+   "days": "LMXJV",
+   "price": "11.33",
+   "can_buy_online": "true",
+   "purchase_codes": [
+    "0831",
+    "0108"
+   ],
+   "stops": [
+    [
+     "Talavera de La Reina",
+     "05:45"
+    ],
+    [
+     "Madrid-Estacion Sur",
+     "07:05"
+    ]
+   ],
+   "intermediate": 0,
+   "santa_olalla": false
+  },
+  {
+   "expedition": "909519",
+   "line": "909",
+   "departure": "07:00",
+   "arrival": "09:00",
+   "duration": "02:00h",
+   "days": "LMXJV",
+   "price": "11.33",
+   "can_buy_online": "true",
+   "purchase_codes": [
+    "0831",
+    "0108"
+   ],
+   "stops": [
+    [
+     "Talavera de La Reina",
+     "07:00"
+    ],
+    [
+     "Santa Olalla",
+     "07:30"
+    ],
+    [
+     "Santa Cruz del Retamar",
+     "07:50"
+    ],
+    [
+     "Valmojado",
+     "08:00"
+    ],
+    [
+     "Mostoles",
+     "08:20"
+    ],
+    [
+     "Alcorcon",
+     "08:30"
+    ],
+    [
+     "Madrid-Estacion Sur",
+     "09:00"
+    ]
+   ],
+   "intermediate": 5,
+   "santa_olalla": true
+  },
+  {
+   "expedition": "910503",
+   "line": "910",
+   "departure": "07:00",
+   "arrival": "09:00",
+   "duration": "02:00h",
+   "days": "LMXJVSD",
+   "price": "11.33",
+   "can_buy_online": "true",
+   "purchase_codes": [
+    "0831",
+    "0108"
+   ],
+   "stops": [
+    [
+     "Talavera de La Reina",
+     "07:00"
+    ],
+    [
+     "Cruce de Cazalegas",
+     "07:15"
+    ],
+    [
+     "Empalme Cerralbos",
+     "07:20"
+    ],
+    [
+     "Cruce El Bravo",
+     "07:25"
+    ],
+    [
+     "Santa Olalla",
+     "07:30"
+    ],
+    [
+     "Maqueda",
+     "07:40"
+    ],
+    [
+     "Quismondo",
+     "07:45"
+    ],
+    [
+     "Santa Cruz del Retamar",
+     "07:55"
+    ],
+    [
+     "Valmojado",
+     "08:05"
+    ],
+    [
+     "Urb.Calypo",
+     "08:15"
+    ],
+    [
+     "Urb.Fado",
+     "08:15"
+    ],
+    [
+     "Navalcarnero",
+     "08:25"
+    ],
+    [
+     "Mostoles",
+     "08:35"
+    ],
+    [
+     "Alcorcon",
+     "08:45"
+    ],
+    [
+     "Madrid-Estacion Sur",
+     "09:00"
+    ]
+   ],
+   "intermediate": 13,
+   "santa_olalla": true
+  }
+ ]
+}

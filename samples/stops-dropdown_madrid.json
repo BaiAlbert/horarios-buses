@@ -1,0 +1,29 @@
+{
+ "_request": {
+  "method": "GET",
+  "url": "https://www.samar.es/api/app/public/stops-dropdown?name=Madrid&maxResultCount=10",
+  "headers": {
+   "X-Requested-With": "XMLHttpRequest",
+   "RequestVerificationToken": "<REDACTED>"
+  },
+  "_note": "Ruta /api/ excluida en robots.txt; capturado del navegador, no repetido con curl"
+ },
+ "response": [
+  {
+   "text": "Madrid Principe Pio",
+   "value": "831"
+  },
+  {
+   "text": "Madrid-Avenida America",
+   "value": "953"
+  },
+  {
+   "text": "Madrid-Estacion Sur",
+   "value": "341"
+  },
+  {
+   "text": "Madridejos",
+   "value": "72"
+  }
+ ]
+}
