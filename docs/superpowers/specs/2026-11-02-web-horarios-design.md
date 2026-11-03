@@ -23,7 +23,7 @@ La web oficial de Samar no muestra esto de un vistazo, y las plazas solo se ven 
    - etiqueta **«Directo»** si hay exactamente 2 paradas;
    - etiqueta **«Santa Olalla»** si alguna parada del itinerario se llama así;
    - **itinerario** completo, con la hora de cada parada.
-3. Un interruptor **«Ocultar itinerarios»** pliega las listas de paradas y deja una vista compacta.
+3. Un interruptor **«Ocultar paradas»** (antes «Ocultar itinerarios») pliega las listas de paradas y deja una vista compacta.
 4. Cada tarjeta tiene un botón **«Ver plazas libres»**. Al pulsarlo se consulta solo ese bus y se muestran **libres, ocupadas y totales**, con la hora de la consulta.
 
 ## Fuera del alcance (non-goals)

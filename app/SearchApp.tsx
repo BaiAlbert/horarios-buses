@@ -102,9 +102,9 @@ export default function SearchApp() {
             <div className="results-head">
               <h2>{ROUTE_LABEL[state.dir]} · <span className="date">{longDate(state.date)}</span></h2>
               {state.data.trips.length > 0 && (
-                <label className="toggle">
+                <label className="chip chip-toggle">
                   <input type="checkbox" checked={hideItinerary} onChange={(e) => toggleHide(e.target.checked)} />
-                  Ocultar itinerarios
+                  Ocultar paradas
                 </label>
               )}
             </div>

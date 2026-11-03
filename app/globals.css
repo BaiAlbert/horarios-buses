@@ -83,8 +83,7 @@ input[type="date"], input[type="password"] {
 .results { margin-top: 20px; }
 .results-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
 .date { font-weight: 400; color: var(--muted); }
-.toggle { display: inline-flex; gap: 6px; align-items: center; font-size: .92rem; cursor: pointer; }
-.toggle input { width: 18px; height: 18px; }
+.chip-toggle { background: var(--accent-soft); color: var(--accent); }
 .count, .empty { color: var(--muted); margin: 8px 0; }
 .notices { background: var(--warn-bg); color: var(--warn-fg); border-radius: var(--radius); padding: 10px 14px; font-size: .9rem; margin-bottom: 12px; }
 .notices p { margin: 4px 0 0; }
