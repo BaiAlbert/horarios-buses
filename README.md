@@ -24,9 +24,13 @@ Requiere Node 22.18 o superior, porque los tests usan `node --test` con TypeScri
 ## Desplegar en Vercel (gratis)
 
 1. Sube el repositorio a GitHub y en Vercel elige **Add New → Project** para importarlo. Next.js se detecta solo.
-2. En **Settings → Environment Variables**, crea `APP_PASSWORD` con la contraseña que vas a compartir.
+2. En **Settings → Environment Variables**, crea `APP_PASSWORD` con la contraseña que vas a compartir. Que sea larga y aleatoria (20 caracteres o más, p. ej. `openssl rand -base64 24`): es la defensa real contra quien intente adivinarla.
 3. Pulsa **Deploy**. Las funciones se ejecutan en París (`cdg1`, en `vercel.json`).
-4. Comparte la URL y la contraseña con quien quieras.
+4. En **Firewall → Rules**, crea una regla de *Rate Limit*: método `POST`, ruta `/login`, ventana fija de 60 s, 10 peticiones, por IP, acción *Deny*. El plan gratuito solo admite una.
+5. En los ajustes de la cuenta (Team), desactiva el uso de tu contenido para entrenar IA (*Model Training*): en el plan Hobby viene activado.
+6. Comparte la URL y la contraseña con quien quieras.
+
+Si notas un ataque (muchas peticiones de golpe), activa **Firewall → Bot Management → Attack Challenge Mode**. Es gratis y lo que bloquea no cuenta para la cuota.
 
 **Cambiar la contraseña:** edita `APP_PASSWORD` en Vercel y haz **Deployments → Redeploy**. Todas las sesiones abiertas dejan de valer y hay que entrar con la nueva.
 
