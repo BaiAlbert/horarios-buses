@@ -182,6 +182,9 @@ input:focus-visible { outline: none; }
 }
 .primary:disabled { opacity: 0.6; }
 a.primary { text-decoration: none; }
+
+.site-footer { display: grid; gap: 6px; margin-top: 40px; max-width: 70ch; font-size: 0.8rem; text-wrap: pretty; }
+.site-footer a { color: inherit; }
 .secondary {
   min-height: 46px;
   color: var(--accent-strong);
