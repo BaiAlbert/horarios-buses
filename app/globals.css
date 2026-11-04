@@ -46,10 +46,17 @@ button:disabled { cursor: default; }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 input:focus-visible { outline: none; }
 
-.sr {
+.sr, .skip-link:not(:focus) {
   position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
   overflow: hidden; clip-path: inset(50%); white-space: nowrap;
 }
+.skip-link {
+  position: absolute; z-index: 10; top: max(12px, env(safe-area-inset-top)); left: max(16px, env(safe-area-inset-left));
+  padding: 10px 16px; border-radius: 999px; background: var(--glass-strong); color: var(--accent-strong);
+  font-weight: 650; text-decoration: none; box-shadow: 0 4px 12px -4px var(--glass-shadow);
+}
+/* destino del enlace de salto: recibe el foco pero no es un control */
+#resultados:focus { outline: none; }
 
 /* ───────── Cristal ───────── */
 .glass {

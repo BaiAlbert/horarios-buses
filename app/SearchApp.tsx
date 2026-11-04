@@ -126,7 +126,7 @@ export default function SearchApp() {
         {total > 0 && <HideSwitch className="switch--side glass" checked={hideItinerary} onChange={toggleHide} />}
       </div>
 
-      <section aria-live="polite" className="results">
+      <section id="resultados" tabIndex={-1} aria-live="polite" className="results">
         {state.status === 'idle' && <p className="idle glass">Elige el trayecto y el día, y pulsa «Buscar buses».</p>}
         {loading && (
           <>
