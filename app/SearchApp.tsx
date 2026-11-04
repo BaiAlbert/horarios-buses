@@ -14,7 +14,7 @@ const ROUTE_LABEL: Record<Direction, string> = {
 type State =
   | { status: 'idle' }
   | { status: 'loading' }
-  | { status: 'error' }
+  | { status: 'error'; offline: boolean }
   | { status: 'done'; dir: Direction; date: string; data: SearchResult };
 
 const HIDE_KEY = 'ocultar-itinerarios';
@@ -82,7 +82,7 @@ export default function SearchApp() {
       if (!res.ok) throw new Error(String(res.status));
       setState({ status: 'done', ...searched, data: await res.json() });
     } catch {
-      if (!ctrl.signal.aborted) setState({ status: 'error' });
+      if (!ctrl.signal.aborted) setState({ status: 'error', offline: !navigator.onLine });
     }
   }
 
@@ -141,7 +141,8 @@ export default function SearchApp() {
           </>
         )}
         {state.status === 'error' && (
-          <p className="error glass empty">No se pudo consultar Samar. <button type="button" onClick={search}>Reintentar</button></p>
+          <p className="error glass empty">
+            {state.offline ? 'Sin conexión a internet.' : 'No se pudo consultar Samar.'} <button type="button" onClick={search}>Reintentar</button></p>
         )}
         {done && (
           <>
