@@ -42,7 +42,6 @@ export default function SearchApp() {
   const [hideItinerary, setHideItinerary] = useState(false);
   const [state, setState] = useState<State>({ status: 'idle' });
   const [kinds, setKinds] = useState<TripKind[]>(ALL_KINDS);
-  const [moved, setMoved] = useState(false); // la caja del selector solo reacciona tras la primera pulsación
   const inflight = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -107,10 +106,10 @@ export default function SearchApp() {
     <div className="layout">
       <div className="side">
         <form className="panel glass" onSubmit={(e) => { e.preventDefault(); search(); }}>
-          <div className="routes glass" role="radiogroup" aria-label="Trayecto" data-dir={dir} data-moved={moved || undefined}>
+          <div className="routes glass" role="radiogroup" aria-label="Trayecto">
             {(Object.keys(ROUTE_LABEL) as Direction[]).map((d) => (
               <label key={d} className="route">
-                <input type="radio" name="dir" value={d} checked={dir === d} onChange={() => { setDir(d); setMoved(true); }} className="sr" />
+                <input type="radio" name="dir" value={d} checked={dir === d} onChange={() => setDir(d)} className="sr" />
                 <span>{ROUTE_LABEL[d]}</span>
               </label>
             ))}
