@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import type { Direction, Trip } from '../lib/samar.ts';
 import type { SeatsResult } from '../lib/autobusing.ts';
 import { KIND_LABEL, tripKind } from '../lib/rules.ts';
@@ -15,7 +15,10 @@ const hm = (d: string) => d.replace(/^0?(\d+):(\d\d)$/, '$1h$2'); // 01:20 → 1
 const madridTime = (iso: string) =>
   new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' }).format(new Date(iso));
 
-export default function TripCard({ trip, dir, date, hideItinerary }: { trip: Trip; dir: Direction; date: string; hideItinerary: boolean }) {
+type Props = { trip: Trip; dir: Direction; date: string; hideItinerary: boolean };
+
+// memo: elegir otra fecha o trayecto en el buscador no vuelve a pintar las tarjetas ya en pantalla
+export default memo(function TripCard({ trip, dir, date, hideItinerary }: Props) {
   const [seats, setSeats] = useState<SeatsState>({ status: 'idle' });
   const kind = tripKind(trip);
 
@@ -32,15 +35,16 @@ export default function TripCard({ trip, dir, date, hideItinerary }: { trip: Tri
   }
 
   return (
-    <article className="card">
-      <header className="card-head">
-        <p className="times">{trip.departure} → {trip.arrival}</p>
-        <p className="line">Línea {trip.line}</p>
+    <article className="card glass">
+      <header className="journey">
+        <time className="times">{trip.departure}</time>
+        <span className="track"><span className="sr"> a </span>{hm(trip.duration)}</span>
+        <time className="times">{trip.arrival}</time>
       </header>
       <p className="meta">
         <span className={`kind kind-${kind}`}>{KIND_LABEL[kind]}</span>
+        <span>Línea {trip.line}</span>
         <span>{trip.stops.length} paradas</span>
-        <span>{hm(trip.duration)}</span>
       </p>
 
       {trip.alerts.length > 0 && (
@@ -49,17 +53,21 @@ export default function TripCard({ trip, dir, date, hideItinerary }: { trip: Tri
         </div>
       )}
 
-      {!hideItinerary && (
-        <ol className="itinerary">
-          {trip.stops.map((s, i) => (
-            <li key={i}><time>{s.time}</time> {s.name}</li>
-          ))}
-        </ol>
-      )}
+      {/* siempre en el DOM para poder animar el cierre; inert lo saca del foco y de los lectores de pantalla */}
+      <div className="collapse" data-open={!hideItinerary} inert={hideItinerary}>
+        <div>
+          <ol className="stops">
+            {trip.stops.map((s, i) => (
+              <li key={i}><time>{s.time}</time> {s.name}</li>
+            ))}
+          </ol>
+        </div>
+      </div>
 
       <div className="seats" aria-live="polite">
         {(seats.status === 'idle' || seats.status === 'loading') && (
-          <button type="button" className="secondary" onClick={loadSeats} disabled={seats.status === 'loading'}>
+          <button type="button" className="secondary press" onClick={loadSeats} disabled={seats.status === 'loading'}>
+            {seats.status === 'loading' && <span className="spinner" aria-hidden="true" />}
             {seats.status === 'loading' ? 'Consultando…' : 'Ver plazas libres'}
           </button>
         )}
@@ -93,4 +101,4 @@ export default function TripCard({ trip, dir, date, hideItinerary }: { trip: Tri
       </div>
     </article>
   );
-}
+});

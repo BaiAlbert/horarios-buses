@@ -32,6 +32,10 @@ Requiere Node 22.18 o superior, porque los tests usan `node --test` con TypeScri
 
 Si `APP_PASSWORD` no está definida, nadie puede entrar.
 
+## Aspecto
+
+Estética «cristal líquido» (estilo iOS/macOS) con animaciones de muelle en CSS puro (`linear()`), sin librerías. Todos los colores y la materia del cristal viven en `app/theme.css`: cambiando los cuatro `--hue-*` se recolorea toda la web (hay paletas de ejemplo en el comentario de cabecera). Respeta modo oscuro, `prefers-reduced-motion`, `prefers-reduced-transparency` y `prefers-contrast`.
+
 ## Ajustes
 
 - **Plazas de las líneas 901–905.** Estas líneas siguen hacia Extremadura y se muestran con un aviso de que las plazas podrían ser de todo el recorrido. Para fiarte de que son las de tu tramo, vacía `PASS_THROUGH_LINES` en `lib/rules.ts`.

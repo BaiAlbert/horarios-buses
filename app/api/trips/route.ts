@@ -16,7 +16,8 @@ export async function GET(request: Request) {
   if (!dir || !isAllowedDate(date)) return Response.json({ error: 'Parámetros no válidos' }, { status: 400 });
 
   try {
-    return Response.json(await getTrips(dir, date));
+    // private: solo el navegador de quien consulta lo guarda; evita repetir la petición al alternar trayecto y volver
+    return Response.json(await getTrips(dir, date), { headers: { 'Cache-Control': 'private, max-age=60' } });
   } catch (e) {
     console.error('samar.es', e);
     return Response.json({ error: 'No se pudo consultar Samar' }, { status: 502 });

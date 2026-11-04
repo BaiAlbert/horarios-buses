@@ -1,0 +1,138 @@
+/*
+ * TEMA — único sitio donde viven los colores y la «materia» del cristal.
+ * Para probar otra estética basta con tocar este archivo:
+ *   1. Los 4 tonos (--hue-*) recolorean fondo, acento y destellos a la vez.
+ *   2. Los bloques de «Cristal» ajustan lo opaco, borroso y brillante que se ve.
+ * Ejemplos (pégalos en :root):
+ *   Atardecer →  --hue-accent: 20;  --hue-a: 20;  --hue-b: 350; --hue-c: 70;
+ *   Bosque    →  --hue-accent: 165; --hue-a: 165; --hue-b: 130; --hue-c: 215;
+ *   Violeta   →  --hue-accent: 295; --hue-a: 295; --hue-b: 255; --hue-c: 340;
+ */
+:root {
+  /* Tonos (grados OKLCH) */
+  --hue-accent: 255;
+  --hue-a: 255;
+  --hue-b: 305;
+  --hue-c: 200;
+
+  /* Tipos de bus */
+  --hue-directo: 150;
+  --hue-olalla: 75;
+  --hue-ruta: 255;
+  --hue-warn: 80;
+  --hue-error: 25;
+
+  /* Tipografía */
+  --font: ui-sans-serif, system-ui, -apple-system, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", Roboto, sans-serif;
+  --font-display: ui-sans-serif, system-ui, -apple-system, "SF Pro Display", "Segoe UI Variable Display", "Segoe UI", Roboto, sans-serif;
+
+  /* Formas */
+  --r-lg: 28px;
+  --r-md: 20px;
+  --r-sm: 14px;
+
+  /* Muelles: curvas linear() calculadas con amortiguación 0,62 y 0,8 */
+  --spring-bounce: linear(0, 0.0273, 0.098, 0.1969, 0.3115, 0.4318, 0.5499, 0.6604, 0.7594, 0.8449, 0.9159, 0.9727, 1.0159, 1.0469, 1.0674, 1.0789, 1.0833, 1.0823, 1.0772, 1.0695, 1.0601, 1.0502, 1.0402, 1.0307, 1.0222, 1.0147, 1.0085, 1.0034, 0.9995, 0.9967, 0.9947, 0.9936, 0.9931, 0.9931, 0.9934, 0.994, 0.9948, 0.9956, 0.9964, 0.9972, 1);
+  --spring-soft: linear(0, 0.0181, 0.0648, 0.1308, 0.2085, 0.292, 0.3769, 0.4598, 0.5385, 0.6114, 0.6777, 0.7368, 0.7887, 0.8336, 0.8719, 0.904, 0.9307, 0.9524, 0.9697, 0.9834, 0.9938, 1.0017, 1.0073, 1.0111, 1.0135, 1.0147, 1.0152, 1.0149, 1.0143, 1.0133, 1.0121, 1.0109, 1.0096, 1.0083, 1.0071, 1.006, 1.005, 1.0041, 1.0033, 1.0026, 1);
+  --t-spring: 560ms;
+  --t-fast: 160ms;
+
+  color-scheme: light dark;
+
+  /* ── Claro ── */
+  --bg-base: oklch(0.955 0.025 var(--hue-a));
+  --orb-a: oklch(0.78 0.15 var(--hue-a) / 0.85);
+  --orb-b: oklch(0.8 0.15 var(--hue-b) / 0.7);
+  --orb-c: oklch(0.85 0.13 var(--hue-c) / 0.8);
+
+  --text: oklch(0.2 0.03 var(--hue-a));
+  --text-muted: oklch(0.43 0.03 var(--hue-a));
+  --accent: oklch(0.5 0.21 var(--hue-accent));
+  --accent-strong: oklch(0.44 0.2 var(--hue-accent));
+  --on-accent: oklch(0.99 0 0);
+
+  /* Cristal */
+  --glass: oklch(1 0 0 / 0.58);
+  --glass-strong: oklch(1 0 0 / 0.78);
+  --glass-tint: oklch(1 0 0 / 0.28);
+  --glass-blur: 22px;
+  --glass-saturate: 180%;
+  --glass-edge-hi: oklch(1 0 0 / 0.95);
+  --glass-edge-lo: oklch(1 0 0 / 0.35);
+  --glass-shadow: oklch(0.3 0.08 var(--hue-a) / 0.16);
+  --glass-shadow-soft: oklch(0.3 0.08 var(--hue-a) / 0.08);
+  --hairline: oklch(0.3 0.05 var(--hue-a) / 0.12);
+
+  --thumb: oklch(1 0 0 / 0.95);
+  --focus: oklch(0.5 0.21 var(--hue-accent));
+
+  --directo-bg: oklch(0.9 0.09 var(--hue-directo) / 0.85);
+  --directo-fg: oklch(0.3 0.08 var(--hue-directo));
+  --olalla-bg: oklch(0.92 0.1 var(--hue-olalla) / 0.85);
+  --olalla-fg: oklch(0.35 0.08 var(--hue-olalla));
+  --ruta-bg: oklch(0.9 0.05 var(--hue-ruta) / 0.85);
+  --ruta-fg: oklch(0.32 0.08 var(--hue-ruta));
+  --warn-bg: oklch(0.94 0.08 var(--hue-warn) / 0.8);
+  --warn-fg: oklch(0.35 0.08 var(--hue-warn));
+  --ok-bg: oklch(0.92 0.08 var(--hue-directo) / 0.8);
+  --ok-fg: oklch(0.3 0.08 var(--hue-directo));
+  --error: oklch(0.5 0.2 var(--hue-error));
+}
+
+/* ── Oscuro ── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-base: oklch(0.18 0.03 var(--hue-a));
+    --orb-a: oklch(0.5 0.19 var(--hue-a) / 0.7);
+    --orb-b: oklch(0.45 0.18 var(--hue-b) / 0.55);
+    --orb-c: oklch(0.5 0.12 var(--hue-c) / 0.5);
+
+    --text: oklch(0.96 0.01 var(--hue-a));
+    --text-muted: oklch(0.76 0.025 var(--hue-a));
+    --accent: oklch(0.72 0.16 var(--hue-accent));
+    --accent-strong: oklch(0.78 0.14 var(--hue-accent));
+    --on-accent: oklch(0.16 0.03 var(--hue-accent));
+
+    --glass: oklch(0.32 0.03 var(--hue-a) / 0.5);
+    --glass-strong: oklch(0.26 0.03 var(--hue-a) / 0.78);
+    --glass-tint: oklch(1 0 0 / 0.06);
+    --glass-edge-hi: oklch(1 0 0 / 0.38);
+    --glass-edge-lo: oklch(1 0 0 / 0.08);
+    --glass-shadow: oklch(0 0 0 / 0.42);
+    --glass-shadow-soft: oklch(0 0 0 / 0.22);
+    --hairline: oklch(1 0 0 / 0.14);
+
+    --thumb: oklch(1 0 0 / 0.2);
+
+    --directo-bg: oklch(0.4 0.09 var(--hue-directo) / 0.7);
+    --directo-fg: oklch(0.93 0.08 var(--hue-directo));
+    --olalla-bg: oklch(0.42 0.09 var(--hue-olalla) / 0.7);
+    --olalla-fg: oklch(0.94 0.08 var(--hue-olalla));
+    --ruta-bg: oklch(0.4 0.07 var(--hue-ruta) / 0.7);
+    --ruta-fg: oklch(0.92 0.05 var(--hue-ruta));
+    --warn-bg: oklch(0.4 0.08 var(--hue-warn) / 0.65);
+    --warn-fg: oklch(0.94 0.08 var(--hue-warn));
+    --ok-bg: oklch(0.38 0.08 var(--hue-directo) / 0.65);
+    --ok-fg: oklch(0.93 0.08 var(--hue-directo));
+    --error: oklch(0.78 0.15 var(--hue-error));
+  }
+}
+
+/* Navegadores sin linear() (Safari anterior a 17.2): curvas de rebote equivalentes */
+@supports not (transition-timing-function: linear(0, 1)) {
+  :root {
+    --spring-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --spring-soft: cubic-bezier(0.22, 1.2, 0.36, 1);
+  }
+}
+
+/* Accesibilidad: sin transparencias, más contraste, sin movimiento */
+@media (prefers-reduced-transparency: reduce) {
+  :root { --glass: var(--glass-strong); --glass-tint: transparent; --glass-blur: 0px; }
+}
+@media (prefers-contrast: more) {
+  :root { --glass-edge-hi: var(--text); --glass-edge-lo: var(--text); --hairline: var(--text-muted); --text-muted: var(--text); }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --spring-bounce: ease-out; --spring-soft: ease-out; --t-spring: 1ms; }
+}
