@@ -140,11 +140,12 @@ input:focus-visible { outline: none; }
 .routes:has(input[value='vuelta']:checked) { --x: 100%; }
 /* La caja absorbe el golpe de la pastilla: se estira hacia donde va y vuelve con el mismo muelle.
    Dos nombres de animación con los mismos fotogramas para que se reinicie en cada cambio. */
-.routes[data-moved] { animation-duration: var(--t-spring); animation-timing-function: var(--spring-bounce); }
+.routes[data-moved] { animation-duration: var(--t-spring); animation-timing-function: ease-in-out; }
 .routes[data-moved][data-dir='vuelta'] { transform-origin: 0 50%; animation-name: stretch-right; }
 .routes[data-moved][data-dir='ida'] { transform-origin: 100% 50%; animation-name: stretch-left; }
-@keyframes stretch-right { from { transform: scale(1.06, 0.92); } }
-@keyframes stretch-left { from { transform: scale(1.06, 0.92); } }
+/* Solo en horizontal, como el rebote de la pastilla: se estira cuando ella llega al extremo y se encoge un poco al volver */
+@keyframes stretch-right { 40% { transform: scaleX(1.05); } 65% { transform: scaleX(0.99); } 85% { transform: scaleX(1.004); } }
+@keyframes stretch-left { 40% { transform: scaleX(1.05); } 65% { transform: scaleX(0.99); } 85% { transform: scaleX(1.004); } }
 .route { position: relative; z-index: 1; display: grid; place-items: center; min-height: 60px; padding: 8px 10px; text-align: center; cursor: pointer; border-radius: calc(var(--r-md) - 4px); }
 .route span { font-size: 0.9rem; font-weight: 600; line-height: 1.25; color: var(--text-muted); text-wrap: balance; transition: color 200ms; }
 .route:has(input:checked) span { color: var(--text); }
