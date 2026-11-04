@@ -9,6 +9,8 @@ export default function LoginPage() {
     <main className="login-page">
       <form action={action} className="login-card glass">
         <h1>Buses Madrid ↔ Talavera</h1>
+        {/* sin usuario real: los gestores de contraseñas necesitan uno para guardar la clave */}
+        <input type="text" name="username" autoComplete="username" value="horarios-buses" readOnly hidden />
         <label htmlFor="password">Contraseña</label>
         <input id="password" name="password" type="password" autoComplete="current-password" required autoFocus />
         <button type="submit" className="primary press" disabled={pending}>
