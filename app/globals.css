@@ -108,9 +108,16 @@ input:focus-visible { outline: none; }
 /* Tablet/ordenador, y móvil en horizontal: buscador a un lado, resultados al otro */
 @media (min-width: 900px), (min-width: 680px) and (orientation: landscape) {
   .layout { grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); gap: 28px; max-width: none; }
-  .panel { position: sticky; top: 24px; }
+  .side { position: sticky; top: 24px; z-index: 10; } /* buscador e interruptor se quedan fijos juntos; z-index: que el calendario pase por encima de la barra de filtros */
 }
-@media (max-height: 520px) { .panel { position: relative; top: auto; } }
+.side { display: grid; gap: 12px; }
+/* Pantalla baja (móvil en horizontal): el bloque fijo se compacta */
+@media (max-height: 520px) {
+  .side { top: 12px; }
+  .panel { padding: 14px; gap: 10px; }
+  .route { min-height: 50px; }
+  .primary, .date-button { min-height: 46px; }
+}
 
 /* ───────── Buscador ───────── */
 .panel { --r: var(--r-lg); padding: 18px; display: grid; gap: 14px; }
@@ -223,6 +230,13 @@ input:focus-visible { outline: none; }
 .calendar td button:not(:disabled):active { transform: scale(0.88); transition-duration: var(--t-fast); transition-timing-function: ease-out; }
 @media (hover: hover) { .calendar td button:not(:disabled):not(.selected):hover { background: var(--glass-tint); transform: scale(1.1); } }
 
+/* Pantalla baja y ancha (móvil en horizontal): el calendario se abre al lado del buscador fijo, donde cabe entero */
+@media (max-height: 520px) and (min-width: 680px) {
+  .datepicker { position: static; }
+  .calendar { top: 0; left: calc(100% + 12px); width: 320px; max-height: calc(100dvh - 24px); overflow-y: auto; transform-origin: 0 20%; }
+  .calendar td button { max-height: 34px; }
+}
+
 /* ───────── Resultados ───────── */
 .results { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; }
 .results-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px; padding-inline: 4px; }
@@ -288,6 +302,15 @@ input:focus-visible { outline: none; }
   font-size: 0.9rem; font-weight: 600; white-space: nowrap; cursor: pointer; user-select: none;
 }
 @media (pointer: coarse) { .switch { min-height: 44px; } }
+/* «Ocultar paradas» vive en un solo sitio a la vez, el más a mano según el diseño:
+   cabecera (móvil vertical) → barra de filtros (una columna ancha) → bajo el buscador fijo (dos columnas) */
+.switch--bar, .switch--side { display: none; }
+@media (min-width: 560px) { .switch--head { display: none; } .switch--bar { display: inline-flex; margin-left: auto; } }
+@media (min-width: 900px), (min-width: 680px) and (orientation: landscape) {
+  .switch--bar { display: none; }
+  .switch--side { display: flex; justify-content: space-between; min-height: 52px; padding: 0 16px; border-radius: var(--r-md); }
+}
+@media (max-height: 520px) { .switch--side { min-height: 46px; } }
 .switch input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
 .switch-track {
   position: relative; flex: none; width: 48px; height: 28px; border-radius: 999px;

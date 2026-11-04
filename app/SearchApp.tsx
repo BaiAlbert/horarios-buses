@@ -25,6 +25,16 @@ const STAGGER_MAX = 8; // solo las primeras tarjetas entran escalonadas; el rest
 const longDate = (date: string) =>
   new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
 
+function HideSwitch({ className, checked, onChange }: { className: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className={`switch ${className}`}>
+      <input type="checkbox" role="switch" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      Ocultar paradas
+      <span className="switch-track" aria-hidden="true" />
+    </label>
+  );
+}
+
 export default function SearchApp() {
   const [dir, setDir] = useState<Direction>('ida');
   const [today, setToday] = useState('');
@@ -95,24 +105,27 @@ export default function SearchApp() {
 
   return (
     <div className="layout">
-      <form className="panel glass" onSubmit={(e) => { e.preventDefault(); search(); }}>
-        <div className="routes glass" role="radiogroup" aria-label="Trayecto" data-dir={dir} data-moved={moved || undefined}>
-          {(Object.keys(ROUTE_LABEL) as Direction[]).map((d) => (
-            <label key={d} className="route">
-              <input type="radio" name="dir" value={d} checked={dir === d} onChange={() => { setDir(d); setMoved(true); }} className="sr" />
-              <span>{ROUTE_LABEL[d]}</span>
-            </label>
-          ))}
-        </div>
+      <div className="side">
+        <form className="panel glass" onSubmit={(e) => { e.preventDefault(); search(); }}>
+          <div className="routes glass" role="radiogroup" aria-label="Trayecto" data-dir={dir} data-moved={moved || undefined}>
+            {(Object.keys(ROUTE_LABEL) as Direction[]).map((d) => (
+              <label key={d} className="route">
+                <input type="radio" name="dir" value={d} checked={dir === d} onChange={() => { setDir(d); setMoved(true); }} className="sr" />
+                <span>{ROUTE_LABEL[d]}</span>
+              </label>
+            ))}
+          </div>
 
-        <label htmlFor="date">Día del viaje</label>
-        <DatePicker id="date" value={date} min={today} max={today && addDays(today, MAX_DAYS_AHEAD)} onChange={setDate} />
+          <label htmlFor="date">Día del viaje</label>
+          <DatePicker id="date" value={date} min={today} max={today && addDays(today, MAX_DAYS_AHEAD)} onChange={setDate} />
 
-        <button type="submit" className="primary press" disabled={!date || loading}>
-          {loading && <span className="spinner" aria-hidden="true" />}
-          {loading ? 'Buscando…' : 'Buscar buses'}
-        </button>
-      </form>
+          <button type="submit" className="primary press" disabled={!date || loading}>
+            {loading && <span className="spinner" aria-hidden="true" />}
+            {loading ? 'Buscando…' : 'Buscar buses'}
+          </button>
+        </form>
+        {total > 0 && <HideSwitch className="switch--side glass" checked={hideItinerary} onChange={toggleHide} />}
+      </div>
 
       <section aria-live="polite" className="results">
         {state.status === 'idle' && <p className="idle glass">Elige el trayecto y el día, y pulsa «Buscar buses».</p>}
@@ -137,13 +150,7 @@ export default function SearchApp() {
               <h2>{ROUTE_LABEL[done.dir]}</h2>
               {total > 0 && <p className="count">{visible.length === total ? `${total} buses` : `${visible.length} de ${total} buses`}</p>}
               <p className="date">{longDate(done.date)}</p>
-              {total > 0 && (
-                <label className="switch">
-                  <input type="checkbox" role="switch" checked={hideItinerary} onChange={(e) => toggleHide(e.target.checked)} />
-                  Ocultar paradas
-                  <span className="switch-track" aria-hidden="true" />
-                </label>
-              )}
+              {total > 0 && <HideSwitch className="switch--head" checked={hideItinerary} onChange={toggleHide} />}
             </div>
             {done.data.notices.length > 0 && (
               <div className="notices" role="note">
@@ -167,6 +174,7 @@ export default function SearchApp() {
                         {KIND_LABEL[k]} <span className="chip-count">{counts[k]}</span>
                       </label>
                     ))}
+                    <HideSwitch className="switch--bar" checked={hideItinerary} onChange={toggleHide} />
                   </div>
                 </div>
                 {visible.length === 0 && <p className="empty glass">Ningún bus con los tipos seleccionados.</p>}
