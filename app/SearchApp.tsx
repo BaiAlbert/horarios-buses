@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { Direction, SearchResult } from '../lib/samar.ts';
 import { KIND_LABEL, MAX_DAYS_AHEAD, addDays, searchDate, todayMadrid, tripKind, type TripKind } from '../lib/rules.ts';
+import AlertIcon from './AlertIcon.tsx';
 import DatePicker from './DatePicker.tsx';
 import TripCard from './TripCard.tsx';
 
@@ -170,7 +171,7 @@ export default function SearchApp() {
             {done.data.notices.length > 0 && (
               <div className="notices" role="note">
                 <button type="button" className="notices-toggle" aria-expanded={!hideNotices} aria-controls="avisos" onClick={toggleNotices}>
-                  <strong>Avisos de Samar</strong>
+                  <strong><AlertIcon /> Avisos de Samar</strong>
                   <svg className="chev" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
                     <path d="M3.5 6 8 10.5 12.5 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>

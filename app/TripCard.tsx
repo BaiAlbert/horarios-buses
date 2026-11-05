@@ -5,6 +5,7 @@ import type { Direction, Trip } from '../lib/samar.ts';
 import type { SeatsResult } from '../lib/autobusing.ts';
 import { KIND_LABEL, tripKind } from '../lib/rules.ts';
 import { formatDuration } from '../lib/calendar.ts';
+import AlertIcon from './AlertIcon.tsx';
 
 type SeatsState =
   | { status: 'idle' }
@@ -51,14 +52,7 @@ export default memo(function TripCard({ trip, dir, date, hideItinerary }: Props)
       {trip.alerts.length > 0 && (
         <div className="trip-alerts" role="note">
           {trip.alerts.map((a) => (
-            <p key={a}>
-              <svg className="alert-icon" width="15" height="15" viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M8 1.75 15 14.25H1z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-                <path d="M8 6.2v3.6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                <circle cx="8" cy="12" r="1" fill="currentColor" />
-              </svg>{' '}
-              {a}
-            </p>
+            <p key={a}><AlertIcon /> {a}</p>
           ))}
         </div>
       )}
