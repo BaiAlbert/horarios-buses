@@ -227,6 +227,9 @@ a.primary { text-decoration: none; }
   animation: pop var(--t-spring) var(--spring-bounce);
 }
 @keyframes pop { from { opacity: 0; transform: scale(0.88) translateY(-8px); } }
+/* Cierre: el mismo recorrido a la inversa, más corto y sin rebote */
+.calendar[data-closing] { animation: pop-out calc(var(--t-spring) * 0.4) ease-in forwards; pointer-events: none; }
+@keyframes pop-out { to { opacity: 0; transform: scale(0.88) translateY(-8px); } }
 .calendar-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .calendar-title { font-weight: 650; letter-spacing: -0.01em; }
 .calendar-title::first-letter { text-transform: uppercase; }

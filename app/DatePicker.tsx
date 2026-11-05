@@ -16,6 +16,7 @@ type Props = { id: string; value: string; min: string; max: string; onChange: (d
 
 export default function DatePicker({ id, value, min, max, onChange }: Props) {
   const [open, setOpen] = useState(false);
+  const [shown, setShown] = useState(false); // sigue en el DOM tras cerrar hasta que acaba la animación de salida
   const [view, setView] = useState({ y: 0, m: 0 });
   const box = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -27,7 +28,11 @@ export default function DatePicker({ id, value, min, max, onChange }: Props) {
 
   useEffect(() => {
     if (!open) return;
-    const onDown = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    // la etiqueta «Día del viaje» reenvía su clic al botón: que lo resuelva toggle (cerrar aquí y reabrir allí repetía la animación)
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Element;
+      if (!box.current?.contains(t) && !t.closest?.(`label[for="${id}"]`)) setOpen(false);
+    };
     const onKey = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape') close(true); };
     document.addEventListener('mousedown', onDown);
     document.addEventListener('keydown', onKey);
@@ -37,9 +42,11 @@ export default function DatePicker({ id, value, min, max, onChange }: Props) {
   }, [open]);
 
   const toggle = () => {
+    if (open) return setOpen(false);
     const d = asDate(value || min);
     setView({ y: d.getUTCFullYear(), m: d.getUTCMonth() });
-    setOpen(!open);
+    setShown(true);
+    setOpen(true);
   };
   const shift = (delta: number) => setView(({ y, m }) => ({ y: y + Math.floor((m + delta) / 12), m: (m + delta + 12) % 12 }));
   const monthKey = (y: number, m: number) => `${y}-${String(m + 1).padStart(2, '0')}`;
@@ -68,8 +75,15 @@ export default function DatePicker({ id, value, min, max, onChange }: Props) {
           <path d="M3.5 6 8 10.5 12.5 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
-      {open && (
-        <div className="calendar glass blur" role="dialog" aria-label="Elegir día del viaje">
+      {shown && (
+        <div
+          className="calendar glass blur"
+          role="dialog"
+          aria-label="Elegir día del viaje"
+          data-closing={!open || undefined}
+          inert={!open}
+          onAnimationEnd={(e) => { if (!open && e.target === e.currentTarget) setShown(false); }}
+        >
           <div className="calendar-head">
             <button type="button" className="press" aria-label="Mes anterior" disabled={current <= min.slice(0, 7)} onClick={() => shift(-1)}>‹</button>
             <span className="calendar-title" aria-live="polite">{monthTitle.format(asDate(`${current}-01`))}</span>
