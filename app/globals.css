@@ -112,12 +112,16 @@ input:focus-visible { outline: none; }
 
 .layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; max-width: 760px; margin-inline: auto; }
 
+/* Una columna: los hijos de .side son filas de .layout, y el pie baja al final, tras los resultados */
+.side { display: contents; }
+.site-footer { order: 1; margin-top: 20px; }
+
 /* Tablet/ordenador, y móvil en horizontal: buscador a un lado, resultados al otro */
 @media (min-width: 900px), (min-width: 680px) and (orientation: landscape) {
   .layout { grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); gap: 28px; max-width: none; }
-  .side { position: sticky; top: 24px; z-index: 10; } /* buscador e interruptor se quedan fijos juntos; z-index: que el calendario pase por encima de la barra de filtros */
+  .side { display: grid; gap: 12px; position: sticky; top: 24px; z-index: 10; } /* buscador, interruptor y pie se quedan fijos juntos; z-index: que el calendario pase por encima de la barra de filtros */
+  .site-footer { order: 0; margin-top: 4px; }
 }
-.side { display: grid; gap: 12px; }
 /* Pantalla baja (móvil en horizontal): el bloque fijo se compacta */
 @media (max-height: 520px) {
   .side { top: 12px; }
@@ -183,7 +187,7 @@ input:focus-visible { outline: none; }
 .primary:disabled { opacity: 0.6; }
 a.primary { text-decoration: none; }
 
-.site-footer { display: grid; gap: 6px; margin-top: 40px; max-width: 70ch; font-size: 0.8rem; text-wrap: pretty; }
+.site-footer { display: grid; gap: 6px; padding-inline: 4px; max-width: 70ch; font-size: 0.8rem; text-wrap: pretty; }
 .site-footer a { color: inherit; }
 .secondary {
   min-height: 46px;
@@ -255,12 +259,10 @@ a.primary { text-decoration: none; }
 .results { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; }
 .results-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px; padding-inline: 4px; }
 .results-head .count { text-align: right; }
-.results-head .switch { justify-self: end; margin-right: -6px; }
 @media (max-width: 559px) {
   .results-head h2 { grid-column: 1 / -1; }
   .results-head .date { grid-column: 1; grid-row: 2; }
   .results-head .count { grid-column: 2; grid-row: 2; }
-  .results-head .switch { grid-column: 1 / -1; grid-row: 3; }
 }
 .date { color: var(--text-muted); font-size: 0.95rem; }
 .date::first-letter { text-transform: uppercase; }
@@ -271,6 +273,19 @@ a.primary { text-decoration: none; }
   background: var(--warn-bg); color: var(--warn-fg); border-radius: var(--r-sm); padding: 10px 14px; font-size: 0.9rem; text-wrap: pretty;
 }
 .notices p { margin-top: 4px; }
+
+/* Avisos de Samar plegables: la cabecera entera es el botón; el relleno va en los párrafos para que plegado no quede hueco */
+.notices { padding: 0; }
+.notices-toggle {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 44px;
+  padding: 8px 14px; background: none; border: 0; border-radius: inherit; text-align: left;
+}
+.notices-toggle .chev { flex: none; transition: transform var(--t-spring) var(--spring-bounce); }
+.notices-toggle[aria-expanded='true'] .chev { transform: rotate(180deg); }
+.notices .collapse { margin-top: 0; }
+.notices .collapse p { padding-inline: 14px; }
+.notices .collapse p:first-child { margin-top: 0; }
+.notices .collapse p:last-child { padding-bottom: 12px; }
 
 /* Barra de filtros: el contenido de las tarjetas pasa por debajo de ella.
    Los tipos se reparten en filas (sin scroll horizontal dentro de una barra fija, que se movía con el dedo)
@@ -317,12 +332,13 @@ a.primary { text-decoration: none; }
 }
 @media (pointer: coarse) { .switch { min-height: 44px; } }
 /* «Ocultar paradas» vive en un solo sitio a la vez, el más a mano según el diseño:
-   cabecera (móvil vertical) → barra de filtros (una columna ancha) → bajo el buscador fijo (dos columnas) */
-.switch--bar, .switch--side { display: none; }
-@media (min-width: 560px) { .switch--head { display: none; } .switch--bar { display: inline-flex; margin-left: auto; } }
+   barra propia bajo el buscador (móvil vertical y dos columnas) → dentro de la barra de filtros (una columna ancha) */
+.switch--bar { display: none; }
+.switch--side { display: flex; justify-content: space-between; min-height: 52px; padding: 0 16px; border-radius: var(--r-md); }
+@media (min-width: 560px) { .switch--side { display: none; } .switch--bar { display: inline-flex; margin-left: auto; } }
 @media (min-width: 900px), (min-width: 680px) and (orientation: landscape) {
   .switch--bar { display: none; }
-  .switch--side { display: flex; justify-content: space-between; min-height: 52px; padding: 0 16px; border-radius: var(--r-md); }
+  .switch--side { display: flex; }
 }
 @media (max-height: 520px) { .switch--side { min-height: 46px; } }
 .switch input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
@@ -372,6 +388,7 @@ a.primary { text-decoration: none; }
 
 .trip-alerts { margin-top: 12px; font-weight: 600; font-size: 0.88rem; }
 .trip-alerts p + p { margin-top: 4px; }
+.alert-icon { vertical-align: -2px; }
 
 /* Paradas: el ocultar/mostrar se anima con muelle */
 .collapse {

@@ -8,14 +8,6 @@ export default function Page() {
       <main className="shell">
         <h1>Buses Madrid ↔ Talavera</h1>
         <SearchApp />
-        <footer className="site-footer">
-          <p>
-            Web personal y no oficial, sin relación con Autocares Samar ni con autobusing. Los horarios y las plazas se
-            leen de samar.es y regular.autobusing.es y pueden no estar al día: compruébalos en{' '}
-            <a href="https://www.samar.es">samar.es</a> antes de viajar.
-          </p>
-          <p>Solo se usa una cookie técnica para mantener la sesión iniciada.</p>
-        </footer>
       </main>
     </>
   );

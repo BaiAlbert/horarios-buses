@@ -4,6 +4,15 @@ export function formatDateEs(date: string): string {
   return date.split('-').reverse().join('/'); // 2026-11-03 → 03/11/2026
 }
 
+/** 01:35 → «1 h 35 min» (a la vista) y «1 hora 35 minutos» (lectores de pantalla). Formato desconocido: tal cual. */
+export function formatDuration(d: string): { short: string; long: string } {
+  const m = d.match(/^(\d+):(\d\d)$/);
+  const part = (n: number, abbr: string, word: string) => (n ? { short: `${n} ${abbr}`, long: `${n} ${word}${n === 1 ? '' : 's'}` } : null);
+  const parts = m ? [part(Number(m[1]), 'h', 'hora'), part(Number(m[2]), 'min', 'minuto')].filter((p) => p !== null) : [];
+  if (!parts.length) return { short: d, long: d };
+  return { short: parts.map((p) => p.short).join(' '), long: parts.map((p) => p.long).join(' ') };
+}
+
 const pad = (n: number) => String(n).padStart(2, '0');
 
 /** Semanas del mes (lunes→domingo) con fechas YYYY-MM-DD; null fuera del mes. month0: 0 = enero. */

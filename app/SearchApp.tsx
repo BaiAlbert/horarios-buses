@@ -18,6 +18,7 @@ type State =
   | { status: 'done'; dir: Direction; date: string; data: SearchResult };
 
 const HIDE_KEY = 'ocultar-itinerarios';
+const NOTICES_KEY = 'ocultar-avisos';
 const KINDS_KEY = 'tipos-visibles';
 const ALL_KINDS = Object.keys(KIND_LABEL) as TripKind[];
 const STAGGER_MAX = 8; // solo las primeras tarjetas entran escalonadas; el resto aparece ya colocado
@@ -40,6 +41,7 @@ export default function SearchApp() {
   const [today, setToday] = useState('');
   const [date, setDate] = useState('');
   const [hideItinerary, setHideItinerary] = useState(false);
+  const [hideNotices, setHideNotices] = useState(false);
   const [state, setState] = useState<State>({ status: 'idle' });
   const [kinds, setKinds] = useState<TripKind[]>(ALL_KINDS);
   const inflight = useRef<AbortController | null>(null);
@@ -51,6 +53,7 @@ export default function SearchApp() {
     setDate(t);
     try {
       setHideItinerary(localStorage.getItem(HIDE_KEY) === '1');
+      setHideNotices(localStorage.getItem(NOTICES_KEY) === '1');
       const saved = JSON.parse(localStorage.getItem(KINDS_KEY) ?? 'null');
       if (Array.isArray(saved)) setKinds(ALL_KINDS.filter((k) => saved.includes(k)));
     } catch {}
@@ -60,6 +63,11 @@ export default function SearchApp() {
   const toggleHide = (v: boolean) => {
     setHideItinerary(v);
     try { localStorage.setItem(HIDE_KEY, v ? '1' : '0'); } catch {}
+  };
+
+  const toggleNotices = () => {
+    setHideNotices(!hideNotices);
+    try { localStorage.setItem(NOTICES_KEY, hideNotices ? '0' : '1'); } catch {}
   };
 
   const toggleKind = (k: TripKind) => {
@@ -124,6 +132,14 @@ export default function SearchApp() {
           </button>
         </form>
         {total > 0 && <HideSwitch className="switch--side glass" checked={hideItinerary} onChange={toggleHide} />}
+        <footer className="site-footer">
+          <p>
+            Web personal y no oficial, sin relación con Autocares Samar ni con autobusing. Los horarios y las plazas se
+            leen de samar.es y regular.autobusing.es y pueden no estar al día: compruébalos en{' '}
+            <a href="https://www.samar.es">samar.es</a> antes de viajar.
+          </p>
+          <p>Solo se usa una cookie técnica para mantener la sesión iniciada.</p>
+        </footer>
       </div>
 
       <section id="resultados" tabIndex={-1} aria-live="polite" className="results">
@@ -150,12 +166,18 @@ export default function SearchApp() {
               <h2>{ROUTE_LABEL[done.dir]}</h2>
               {total > 0 && <p className="count">{visible.length === total ? `${total} buses` : `${visible.length} de ${total} buses`}</p>}
               <p className="date">{longDate(done.date)}</p>
-              {total > 0 && <HideSwitch className="switch--head" checked={hideItinerary} onChange={toggleHide} />}
             </div>
             {done.data.notices.length > 0 && (
               <div className="notices" role="note">
-                <strong>Avisos de Samar</strong>
-                {done.data.notices.map((n, i) => <p key={i}>{n}</p>)}
+                <button type="button" className="notices-toggle" aria-expanded={!hideNotices} aria-controls="avisos" onClick={toggleNotices}>
+                  <strong>Avisos de Samar</strong>
+                  <svg className="chev" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M3.5 6 8 10.5 12.5 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+                <div id="avisos" className="collapse" data-open={!hideNotices} inert={hideNotices}>
+                  <div>{done.data.notices.map((n, i) => <p key={i}>{n}</p>)}</div>
+                </div>
               </div>
             )}
             {total === 0 ? (

@@ -4,6 +4,7 @@ import { memo, useState } from 'react';
 import type { Direction, Trip } from '../lib/samar.ts';
 import type { SeatsResult } from '../lib/autobusing.ts';
 import { KIND_LABEL, tripKind } from '../lib/rules.ts';
+import { formatDuration } from '../lib/calendar.ts';
 
 type SeatsState =
   | { status: 'idle' }
@@ -11,7 +12,6 @@ type SeatsState =
   | { status: 'error' }
   | { status: 'done'; result: SeatsResult & { passThrough: boolean } };
 
-const hm = (d: string) => d.replace(/^0?(\d+):(\d\d)$/, '$1h$2'); // 01:20 → 1h20
 const madridTime = (iso: string) =>
   new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' }).format(new Date(iso));
 
@@ -21,6 +21,7 @@ type Props = { trip: Trip; dir: Direction; date: string; hideItinerary: boolean 
 export default memo(function TripCard({ trip, dir, date, hideItinerary }: Props) {
   const [seats, setSeats] = useState<SeatsState>({ status: 'idle' });
   const kind = tripKind(trip);
+  const dur = formatDuration(trip.duration);
 
   async function loadSeats() {
     setSeats({ status: 'loading' });
@@ -38,7 +39,7 @@ export default memo(function TripCard({ trip, dir, date, hideItinerary }: Props)
     <article className="card glass">
       <header className="journey">
         <time className="times">{trip.departure}</time>
-        <span className="track"><span className="sr"> a </span>{hm(trip.duration)}</span>
+        <span className="track"><span className="sr"> a </span><span aria-hidden="true">{dur.short}</span><span className="sr">{dur.long}</span></span>
         <time className="times">{trip.arrival}</time>
       </header>
       <p className="meta">
@@ -49,7 +50,16 @@ export default memo(function TripCard({ trip, dir, date, hideItinerary }: Props)
 
       {trip.alerts.length > 0 && (
         <div className="trip-alerts" role="note">
-          {trip.alerts.map((a) => <p key={a}><span aria-hidden="true">⚠</span> {a}</p>)}
+          {trip.alerts.map((a) => (
+            <p key={a}>
+              <svg className="alert-icon" width="15" height="15" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M8 1.75 15 14.25H1z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+                <path d="M8 6.2v3.6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                <circle cx="8" cy="12" r="1" fill="currentColor" />
+              </svg>{' '}
+              {a}
+            </p>
+          ))}
         </div>
       )}
 
