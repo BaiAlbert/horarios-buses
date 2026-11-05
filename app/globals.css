@@ -9,6 +9,27 @@ html {
   scroll-padding-top: 88px;
 }
 
+/* ───────── Barra de desplazamiento ─────────
+   Redondeada, sin carril ni flechas, del tono del tema, y solo visible mientras hay scroll (ScrollbarFade.tsx
+   pone data-scrolling en <html>). El color es una propiedad registrada para que el cambio se pueda transicionar. */
+@property --scroll-thumb { syntax: '<color>'; inherits: true; initial-value: transparent; }
+html { --scroll-thumb: transparent; transition: --scroll-thumb 600ms ease-out; }
+html[data-scrolling] { --scroll-thumb: var(--scrollbar); transition-duration: 150ms; }
+/* Ratón (Chromium y Safari de escritorio): estas reglas solo valen si no hay scrollbar-color */
+::-webkit-scrollbar { width: 10px; height: 10px; background: transparent; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-button { display: none; }
+::-webkit-scrollbar-thumb { background: var(--scroll-thumb) padding-box; border: 2px solid transparent; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover, ::-webkit-scrollbar-thumb:active { background-color: var(--scrollbar-hover); }
+/* Firefox (no tiene ::-webkit-scrollbar): la barra estándar, fina y con el mismo color */
+@supports not selector(::-webkit-scrollbar) {
+  html { scrollbar-width: thin; scrollbar-color: var(--scroll-thumb) transparent; }
+}
+/* Pantallas táctiles: la barra nativa ya es superpuesta, redondeada y se oculta sola; solo se le da el color */
+@media (pointer: coarse) {
+  html { scrollbar-color: var(--scrollbar) transparent; }
+}
+
 body {
   margin: 0;
   min-height: 100dvh;

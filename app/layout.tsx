@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import ScrollbarFade from './ScrollbarFade.tsx';
 
 export const metadata: Metadata = {
   title: 'Buses Madrid ↔ Talavera',
@@ -21,7 +22,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body>
+        {children}
+        <ScrollbarFade />
+      </body>
     </html>
   );
 }

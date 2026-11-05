@@ -67,6 +67,8 @@
   --hairline: oklch(0.3 0.05 var(--hue-a) / 0.12);
 
   --thumb: oklch(1 0 0 / 0.95);
+  --scrollbar: oklch(0.45 0.09 var(--hue-a) / 0.45);
+  --scrollbar-hover: oklch(0.45 0.09 var(--hue-a) / 0.7);
   --focus: oklch(0.5 0.21 var(--hue-accent));
 
   --directo-bg: oklch(0.9 0.09 var(--hue-directo) / 0.85);
@@ -106,6 +108,8 @@
     --hairline: oklch(1 0 0 / 0.14);
 
     --thumb: oklch(1 0 0 / 0.2);
+    --scrollbar: oklch(0.85 0.06 var(--hue-a) / 0.4);
+    --scrollbar-hover: oklch(0.85 0.06 var(--hue-a) / 0.65);
 
     --directo-bg: oklch(0.4 0.09 var(--hue-directo) / 0.7);
     --directo-fg: oklch(0.93 0.08 var(--hue-directo));
