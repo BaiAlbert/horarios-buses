@@ -8,7 +8,7 @@ export type TripKind = 'directo' | 'ruta-santa-olalla' | 'ruta';
 export const KIND_LABEL: Record<TripKind, string> = {
   directo: 'Directo',
   'ruta-santa-olalla': 'Ruta · Santa Olalla',
-  ruta: 'Ruta · sin Santa Olalla',
+  ruta: 'Ruta',
 };
 
 const normalize = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();

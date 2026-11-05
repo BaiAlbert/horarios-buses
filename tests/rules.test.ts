@@ -23,7 +23,7 @@ test('tripKind: tres tipos', () => {
   assert.equal(tripKind(t('910001')), 'ruta-santa-olalla');
   assert.equal(tripKind(t('901001')), 'ruta');
   assert.equal(tripKind(t('907001')), 'ruta');
-  assert.equal(KIND_LABEL.ruta, 'Ruta · sin Santa Olalla');
+  assert.equal(KIND_LABEL.ruta, 'Ruta');
 });
 
 test('isAmbiguous: 901/902/903 de las 08:00 sí; 909 de las 10:00 no', () => {

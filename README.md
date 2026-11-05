@@ -3,7 +3,7 @@
 Web privada para ver los buses de Samar entre **Madrid Estación Sur** y **Talavera de la Reina** en una fecha.
 
 - Datos al momento desde samar.es: horarios e itinerario de cada bus, guardados 1 hora.
-- Tipo de cada bus: **Directo** (2 paradas), **Ruta · Santa Olalla** o **Ruta · sin Santa Olalla**.
+- Tipo de cada bus: **Directo** (2 paradas), **Ruta · Santa Olalla** o **Ruta** (sin parar en Santa Olalla).
 - Botón **Ver plazas libres** en cada bus. Consulta el sistema de venta (autobusing) solo para ese bus y guarda el resultado 5 minutos. Nunca pasa del paso «Plazas» ni compra nada.
 - Protegida con una contraseña compartida y oculta a los buscadores (noindex).
 
