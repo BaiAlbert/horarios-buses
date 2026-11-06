@@ -8,7 +8,8 @@
     "start": "next start",
     "test": "node --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "biome lint ."
+    "lint": "biome lint .",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "next": "16.4",
@@ -17,6 +18,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.5",
+    "@playwright/test": "^1.65.0",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
