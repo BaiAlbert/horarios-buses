@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "formatter": { "enabled": false },
+  "assist": { "enabled": false },
+  "files": { "includes": ["app/**/*.ts", "app/**/*.tsx", "app/**/*.css", "lib/**", "tests/*.ts", "proxy.ts", "next.config.ts"] },
+  "linter": {
+    "domains": { "react": "recommended", "next": "recommended" },
+    "rules": {
+      "style": { "noNonNullAssertion": "off" },
+      "complexity": { "noImportantStyles": "off" }
+    }
+  },
+  "overrides": [{ "includes": ["app/globals.css"], "linter": { "rules": { "style": { "noDescendingSpecificity": "off" } } } }]
+}
