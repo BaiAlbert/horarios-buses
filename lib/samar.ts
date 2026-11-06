@@ -14,8 +14,10 @@ export type Trip = {
   alerts: string[];
 };
 export type SearchResult = { trips: Trip[]; notices: string[] };
-// Subir al cambiar la forma de Trip/SearchResult: la caché de datos de Next sobrevive a despliegues y reinicios.
-export const SCHEMA_VERSION = 3;
+// fetchedAt: cuándo se descargó de samar.es (ISO); con datos de la caché es anterior a la petición
+export type TripsResponse = SearchResult & { fetchedAt: string };
+// Subir al cambiar la forma de Trip/TripsResponse: la caché de datos de Next sobrevive a despliegues y reinicios.
+export const SCHEMA_VERSION = 4;
 
 export const USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:132.0) Gecko/20100101 Firefox/132.0';
 export const TIMEOUT_MS = 10_000;
@@ -84,11 +86,11 @@ export function parseResults(html: string): SearchResult {
   return { trips, notices };
 }
 
-export async function fetchTrips(dir: Direction, date: string, fetchImpl: typeof fetch = fetch): Promise<SearchResult> {
+export async function fetchTrips(dir: Direction, date: string, fetchImpl: typeof fetch = fetch): Promise<TripsResponse> {
   const res = await fetchImpl(resultsUrl(dir, date), {
     headers: { 'User-Agent': USER_AGENT },
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   if (res.status !== 200) throw new Error(`samar.es respondió ${res.status}`);
-  return parseResults(await res.text());
+  return { ...parseResults(await res.text()), fetchedAt: new Date().toISOString() };
 }

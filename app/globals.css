@@ -291,6 +291,11 @@ a.primary { text-decoration: none; }
 }
 .notices p { margin-top: 4px; }
 
+.fetched { padding-inline: 4px; color: var(--text-muted); font-size: 0.85rem; }
+.fetched--cached {
+  padding: 10px 14px; border-radius: var(--r-sm); background: var(--warn-bg); color: var(--warn-fg); font-size: 0.9rem; text-wrap: pretty;
+}
+
 /* Avisos de Samar plegables: la cabecera entera es el botón; el relleno va en los párrafos para que plegado no quede hueco */
 .notices { padding: 0; }
 .notices-toggle {

@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Direction, SearchResult } from '../lib/samar.ts';
+import type { Direction, TripsResponse } from '../lib/samar.ts';
+import { madridTime } from '../lib/calendar.ts';
 import { KIND_LABEL, MAX_DAYS_AHEAD, addDays, searchDate, todayMadrid, tripKind, type TripKind } from '../lib/rules.ts';
 import AlertIcon from './AlertIcon.tsx';
 import DatePicker from './DatePicker.tsx';
@@ -16,7 +17,25 @@ type State =
   | { status: 'idle' }
   | { status: 'loading' }
   | { status: 'error'; offline: boolean }
-  | { status: 'done'; dir: Direction; date: string; data: SearchResult };
+  | { status: 'done'; dir: Direction; date: string; data: TripsResponse };
+
+const CACHED_AFTER_MIN = 1; // con menos edad se da por recién descargado (la caché de datos dura hasta 1 h)
+
+// Minutos desde que se descargó de samar.es; null si el reloj del móvil va por detrás (no se puede saber)
+const ageMinutes = (fetchedAt: string) => {
+  const m = Math.floor((Date.now() - Date.parse(fetchedAt)) / 60_000);
+  return m >= 0 ? m : null;
+};
+
+function FetchedLine({ fetchedAt }: { fetchedAt: string }) {
+  const age = ageMinutes(fetchedAt);
+  if (age === null || age < CACHED_AFTER_MIN) return <p className="fetched">Consultado a las {madridTime(fetchedAt)}</p>;
+  return (
+    <p className="fetched fetched--cached">
+      <AlertIcon /> Resultados guardados, consultados a las {madridTime(fetchedAt)} (hace {age} min). Pueden no estar al día.
+    </p>
+  );
+}
 
 const HIDE_KEY = 'ocultar-itinerarios';
 const NOTICES_KEY = 'ocultar-avisos';
@@ -94,8 +113,8 @@ export default function SearchApp() {
       const res = await fetch(`/api/trips?dir=${searched.dir}&date=${searched.date}`, { signal: ctrl.signal });
       if (res.status === 401) { window.location.href = '/login'; return; }
       if (!res.ok) throw new Error(String(res.status));
-      const data: SearchResult = await res.json();
-      if (!Array.isArray(data?.trips)) throw new Error('respuesta inesperada'); // sin esto, un 200 raro dejaría la página en blanco
+      const data: TripsResponse = await res.json();
+      if (!Array.isArray(data?.trips) || Number.isNaN(Date.parse(data.fetchedAt))) throw new Error('respuesta inesperada'); // sin esto, un 200 raro dejaría la página en blanco
       setState({ status: 'done', ...searched, data });
     } catch {
       if (!ctrl.signal.aborted) setState({ status: 'error', offline: !navigator.onLine });
@@ -179,6 +198,7 @@ export default function SearchApp() {
               {total > 0 && <p className="count">{visible.length === total ? `${total} buses` : `${visible.length} de ${total} buses`}</p>}
               <p className="date">{longDate(done.date)}</p>
             </div>
+            <FetchedLine fetchedAt={done.data.fetchedAt} />
             {done.data.notices.length > 0 && (
               <div className="notices" role="note">
                 <button type="button" className="notices-toggle" aria-expanded={!hideNotices} aria-controls="avisos" onClick={toggleNotices}>

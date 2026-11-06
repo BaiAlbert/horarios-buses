@@ -4,7 +4,7 @@ import { memo, useState } from 'react';
 import type { Direction, Trip } from '../lib/samar.ts';
 import type { SeatsResult } from '../lib/autobusing.ts';
 import { KIND_LABEL, tripKind } from '../lib/rules.ts';
-import { formatDuration } from '../lib/calendar.ts';
+import { formatDuration, madridTime } from '../lib/calendar.ts';
 import AlertIcon from './AlertIcon.tsx';
 
 type SeatsState =
@@ -12,9 +12,6 @@ type SeatsState =
   | { status: 'loading' }
   | { status: 'error' }
   | { status: 'done'; result: SeatsResult & { passThrough: boolean } };
-
-const madridFmt = new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' });
-const madridTime = (iso: string) => madridFmt.format(new Date(iso));
 
 function SeatsLine({ r }: { r: Extract<SeatsResult, { ok: true }> }) {
   const checked = <small>(consultado {madridTime(r.checkedAt)})</small>;

@@ -1,5 +1,8 @@
 // Calendario propio: el <input type="date"> nativo usa el idioma del navegador (formato y primer día de la semana).
 
+const madridFmt = new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' });
+export const madridTime = (iso: string) => madridFmt.format(new Date(iso));
+
 export function formatDateEs(date: string): string {
   return date.split('-').reverse().join('/'); // 2026-11-03 → 03/11/2026
 }

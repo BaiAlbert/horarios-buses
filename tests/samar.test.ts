@@ -64,7 +64,9 @@ test('fetchTrips manda User-Agent y lanza error si no es 200', async () => {
     ua = new Headers(init.headers).get('user-agent')!;
     return new Response(fx('samar-vacio.html'));
   }) as unknown as typeof fetch;
-  assert.equal((await fetchTrips('ida', '2026-11-03', ok)).trips.length, 0);
+  const r = await fetchTrips('ida', '2026-11-03', ok);
+  assert.equal(r.trips.length, 0);
+  assert.ok(Number.isFinite(Date.parse(r.fetchedAt)));
   assert.match(ua, /Firefox/);
   const bad = (async () => new Response('x', { status: 503 })) as unknown as typeof fetch;
   await assert.rejects(fetchTrips('ida', '2026-11-03', bad));
@@ -74,6 +76,6 @@ test('si cambia la forma de Trip hay que subir SCHEMA_VERSION (la caché sobrevi
   const trip = parseResults(fx('samar-ida-2026-11-03.html')).trips[0];
   assert.deepEqual(
     { version: SCHEMA_VERSION, keys: Object.keys(trip).sort() },
-    { version: 3, keys: ['alerts', 'arrival', 'departure', 'destinationCode', 'duration', 'expedition', 'line', 'originCode', 'stops'] },
+    { version: 4, keys: ['alerts', 'arrival', 'departure', 'destinationCode', 'duration', 'expedition', 'line', 'originCode', 'stops'] },
   );
 });
