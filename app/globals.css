@@ -156,25 +156,19 @@ input:focus-visible { outline: none; }
 .panel { --r: var(--r-lg); padding: 18px; display: grid; gap: 14px; }
 .panel > label { font-size: 0.875rem; font-weight: 600; color: var(--text-muted); margin-bottom: -6px; padding-inline: 4px; }
 
-/* Selector de trayecto: la pastilla de cristal se desliza con muelle */
-/* La caja sigue a la pastilla con exactamente el mismo muelle: --p avanza de 0 a 1 con la misma curva y duración que
-   el desplazamiento de la pastilla. Cuando se pasa de 1 (o baja de 0) la pastilla rebasa su sitio, y la caja se estira
-   por ese lado esos mismos píxeles (0,49 = recorrido de la pastilla / ancho de la caja). Solo en horizontal. */
-@property --p { syntax: '<number>'; inherits: false; initial-value: 0; }
+/* Selector de trayecto: la pastilla de cristal se desliza con muelle.
+   El muelle se pasa un 3 % del recorrido antes de asentarse, y ese resto asoma por fuera de la caja. Estirar la caja
+   no lo arregla (el estirado también agranda la pastilla, que es hija suya): `overflow: clip` la recorta con la
+   esquina redondeada de la caja. El aro de foco de cada opción va por dentro para que el recorte no lo corte. */
 .routes {
   --r: var(--r-md);
   position: relative;
+  overflow: clip;
   display: grid;
   grid-template-columns: 1fr 1fr;
   padding: 4px;
   background: var(--glass-tint);
   box-shadow: inset 0 1px 3px var(--glass-shadow-soft), inset 0 0 0 1px var(--hairline);
-  /* seguimiento del muelle: ver el comentario de arriba */
-  --p: 0;
-  --over-r: max(0, var(--p) - 1);
-  --over-l: max(0, 0 - var(--p));
-  transform: translateX(calc((var(--over-r) - var(--over-l)) * 24.5%)) scaleX(calc(1 + (var(--over-r) + var(--over-l)) * 0.49));
-  transition: --p var(--t-gentle) var(--spring-gentle);
 }
 .routes::before {
   content: '';
@@ -187,11 +181,11 @@ input:focus-visible { outline: none; }
   transform: translateX(var(--x, 0%));
   transition: transform var(--t-gentle) var(--spring-gentle);
 }
-.routes:has(input[value='vuelta']:checked) { --x: 100%; --p: 1; }
+.routes:has(input[value='vuelta']:checked) { --x: 100%; }
 .route { position: relative; z-index: 1; display: grid; place-items: center; min-height: 60px; padding: 8px 10px; text-align: center; cursor: pointer; border-radius: calc(var(--r-md) - 4px); }
 .route span { font-size: 0.9rem; font-weight: 600; line-height: 1.25; color: var(--text-muted); text-wrap: balance; transition: color 200ms; }
 .route:has(input:checked) span { color: var(--text); }
-.route:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 1px; }
+.route:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: -3px; }
 
 /* Botones */
 .primary, .secondary {

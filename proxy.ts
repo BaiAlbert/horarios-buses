@@ -13,5 +13,5 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   // cada exclusión debe ser el segmento entero: sin el `(?:/|$)`, «/login-x» o «/robots.txtx» se saltarían la sesión
-  matcher: ['/((?!(?:_next/static|_next/image|favicon\\.ico|icon\\.svg|apple-icon|robots\\.txt|login)(?:/|$)).*)'],
+  matcher: ['/((?!(?:_next/static|_next/image|favicon\\.ico|icon\\.svg|apple-icon|robots\\.txt|manifest\\.webmanifest|login)(?:/|$)).*)'],
 };

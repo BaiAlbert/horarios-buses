@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: 'Buses Madrid ↔ Talavera',
   description: 'Horarios y plazas libres de los buses de Samar entre Madrid Estación Sur y Talavera.',
   robots: { index: false, follow: false },
+  appleWebApp: { capable: true, title: 'Buses Talavera', statusBarStyle: 'default' },
 };
 
 export const viewport: Viewport = {
