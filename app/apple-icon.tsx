@@ -7,6 +7,7 @@ export const contentType = 'image/png';
 export default function AppleIcon() {
   return new ImageResponse(
     (
+      // biome-ignore lint/a11y/noSvgWithoutTitle: se convierte en PNG, no llega al DOM
       <svg width="180" height="180" viewBox="0 0 32 32">
         <rect width="32" height="32" fill="#1d4ed8" />
         <rect x="7" y="6" width="18" height="17" rx="3" fill="#fff" />

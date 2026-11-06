@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { SESSION_COOKIE, isValidSession } from '../../../lib/auth.ts';
 import { getSeats, getTrips } from '../../../lib/cache.ts';
+import type { Trip } from '../../../lib/samar.ts';
 import { isAllowedDate, isAmbiguous, parseDirection, passesThrough, siblingArrivals } from '../../../lib/rules.ts';
 
 export const maxDuration = 30;
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
     return Response.json({ error: 'Parámetros no válidos' }, { status: 400 });
   }
 
-  let trips;
+  let trips: Trip[];
   try {
     ({ trips } = await getTrips(dir, date));
   } catch (e) {

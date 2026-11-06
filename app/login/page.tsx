@@ -12,6 +12,7 @@ export default function LoginPage() {
         {/* sin usuario real: los gestores de contraseñas necesitan uno para guardar la clave */}
         <input type="text" name="username" autoComplete="username" value="horarios-buses" readOnly hidden />
         <label htmlFor="password">Contraseña</label>
+        {/* biome-ignore lint/a11y/noAutofocus: es el único campo de la página */}
         <input id="password" name="password" type="password" autoComplete="current-password" required autoFocus aria-invalid={!!state.error} aria-describedby={state.error ? 'password-error' : undefined} />
         <button type="submit" className="primary press" disabled={pending}>
           {pending && <span className="spinner" aria-hidden="true" />}

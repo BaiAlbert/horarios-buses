@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Direction, SearchResult } from '../lib/samar.ts';
 import { KIND_LABEL, MAX_DAYS_AHEAD, addDays, searchDate, todayMadrid, tripKind, type TripKind } from '../lib/rules.ts';
 import AlertIcon from './AlertIcon.tsx';
@@ -24,12 +24,16 @@ const KINDS_KEY = 'tipos-visibles';
 const ALL_KINDS = Object.keys(KIND_LABEL) as TripKind[];
 const STAGGER_MAX = 8; // solo las primeras tarjetas entran escalonadas; el resto aparece ya colocado
 
-const longDate = (date: string) =>
-  new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
+const longDateFmt = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+const longDate = (date: string) => longDateFmt.format(new Date(`${date}T00:00:00Z`));
+
+// el título solo existe mientras hay resultados: cada búsqueda lo monta de nuevo y recibe el foco. Función estable: si cambiara en cada render, enfocaría al filtrar
+const focusOnMount = (el: HTMLElement | null) => el?.focus();
 
 function HideSwitch({ className, checked, onChange }: { className: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <label className={`switch ${className}`}>
+      {/* biome-ignore lint/a11y/useAriaPropsForRole: el checkbox nativo ya expone su estado; aria-checked sobraría */}
       <input type="checkbox" role="switch" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       Ocultar paradas
       <span className="switch-track" aria-hidden="true" />
@@ -46,7 +50,6 @@ export default function SearchApp() {
   const [state, setState] = useState<State>({ status: 'idle' });
   const [kinds, setKinds] = useState<TripKind[]>(ALL_KINDS);
   const inflight = useRef<AbortController | null>(null);
-  const heading = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     // la página se genera en el build: «hoy» se calcula en el navegador
@@ -85,12 +88,15 @@ export default function SearchApp() {
     if (searched.date !== date) setDate(searched.date);
     setState({ status: 'loading' });
     inflight.current?.abort(); // una búsqueda nueva anula la anterior para que no pise el resultado
-    const ctrl = (inflight.current = new AbortController());
+    const ctrl = new AbortController();
+    inflight.current = ctrl;
     try {
       const res = await fetch(`/api/trips?dir=${searched.dir}&date=${searched.date}`, { signal: ctrl.signal });
       if (res.status === 401) { window.location.href = '/login'; return; }
       if (!res.ok) throw new Error(String(res.status));
-      setState({ status: 'done', ...searched, data: await res.json() });
+      const data: SearchResult = await res.json();
+      if (!Array.isArray(data?.trips)) throw new Error('respuesta inesperada'); // sin esto, un 200 raro dejaría la página en blanco
+      setState({ status: 'done', ...searched, data });
     } catch {
       if (!ctrl.signal.aborted) setState({ status: 'error', offline: !navigator.onLine });
     }
@@ -111,9 +117,6 @@ export default function SearchApp() {
     return { counts, visible };
   }, [done?.data, kinds]);
   const total = done?.data.trips.length ?? 0;
-
-  // tras cada búsqueda el foco pasa al título de los resultados (no a toda la lista, que no es una región viva)
-  useEffect(() => { heading.current?.focus(); }, [done?.data]);
 
   // lo único que se anuncia: una línea de estado, no las tarjetas
   const status = loading ? 'Buscando buses…'
@@ -159,8 +162,8 @@ export default function SearchApp() {
         {loading && (
           <ul className="trips" aria-hidden="true">
             {[0, 1, 2].map((i) => (
-              <li key={i} className="skeleton glass" style={{ '--i': i } as CSSProperties}>
-                <i style={{ '--w': '62%' } as CSSProperties} /><i style={{ '--w': '38%' } as CSSProperties} /><i />
+              <li key={i} className="skeleton glass" style={{ '--i': i }}>
+                <i style={{ '--w': '62%' }} /><i style={{ '--w': '38%' }} /><i />
               </li>
             ))}
           </ul>
@@ -172,7 +175,7 @@ export default function SearchApp() {
         {done && (
           <>
             <div className="results-head">
-              <h2 ref={heading} tabIndex={-1}>{ROUTE_LABEL[done.dir]}</h2>
+              <h2 ref={focusOnMount} tabIndex={-1}>{ROUTE_LABEL[done.dir]}</h2>
               {total > 0 && <p className="count">{visible.length === total ? `${total} buses` : `${visible.length} de ${total} buses`}</p>}
               <p className="date">{longDate(done.date)}</p>
             </div>
@@ -185,7 +188,7 @@ export default function SearchApp() {
                   </svg>
                 </button>
                 <div id="avisos" className="collapse" data-open={!hideNotices} inert={hideNotices}>
-                  <div>{done.data.notices.map((n, i) => <p key={i}>{n}</p>)}</div>
+                  <div>{done.data.notices.map((n) => <p key={n}>{n}</p>)}</div>
                 </div>
               </div>
             )}
@@ -193,6 +196,7 @@ export default function SearchApp() {
               <p className="empty glass">No hay buses para este día. Prueba con otra fecha.</p>
             ) : (
               <>
+                {/* biome-ignore lint/a11y/useSemanticElements: un fieldset no admite bien position: sticky ni el estilo de cristal */}
                 <div className="toolbar glass blur" role="group" aria-label="Filtros">
                   <div className="toolbar-inner">
                     <span className="toolbar-label">
@@ -211,7 +215,7 @@ export default function SearchApp() {
                 {visible.length === 0 && <p className="empty glass">Ningún bus con los tipos seleccionados.</p>}
                 <ul className="trips">
                   {visible.map((t, i) => (
-                    <li key={t.expedition} style={{ '--i': Math.min(i, STAGGER_MAX) } as CSSProperties}>
+                    <li key={t.expedition} style={{ '--i': Math.min(i, STAGGER_MAX) }}>
                       <TripCard trip={t} dir={done.dir} date={done.date} hideItinerary={hideItinerary} />
                     </li>
                   ))}

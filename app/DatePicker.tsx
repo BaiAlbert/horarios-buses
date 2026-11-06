@@ -33,13 +33,14 @@ export default function DatePicker({ id, value, min, max, onChange }: Props) {
       const t = e.target as Element;
       if (!box.current?.contains(t) && !t.closest?.(`label[for="${id}"]`)) setOpen(false);
     };
-    const onKey = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape') close(true); };
+    // no usa close(): cambia en cada render y repetiría el foco de abajo
+    const onKey = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); trigger.current?.focus(); } };
     document.addEventListener('mousedown', onDown);
     document.addEventListener('keydown', onKey);
     // el foco entra en el calendario: el día elegido, o el primero disponible
     box.current?.querySelector<HTMLElement>('td button[tabindex="0"]')?.focus();
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
-  }, [open]);
+  }, [open, id]);
 
   const toggle = () => {
     if (open) return setOpen(false);
@@ -68,6 +69,7 @@ export default function DatePicker({ id, value, min, max, onChange }: Props) {
   const tabStop = value.startsWith(current) && enabled(value) ? value : grid.flat().find((d) => d && enabled(d));
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: solo detecta que el foco sale del calendario; no es un control
     <div className="datepicker" ref={box} onBlur={onBlur}>
       <button ref={trigger} id={id} type="button" className="date-button" aria-haspopup="dialog" aria-expanded={open} disabled={!min} onClick={toggle}>
         {value ? <>{formatDateEs(value)} <span className="weekday">{weekdayShort.format(asDate(value))}</span></> : 'Elegir fecha'}
@@ -93,8 +95,10 @@ export default function DatePicker({ id, value, min, max, onChange }: Props) {
             <thead><tr>{WEEKDAYS.map(([letter, name]) => <th key={letter} scope="col"><span aria-hidden="true">{letter}</span><span className="sr">{name}</span></th>)}</tr></thead>
             <tbody>
               {grid.map((week, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: semanas y celdas se definen por su posición en el mes; no se reordenan
                 <tr key={i}>
                   {week.map((d, j) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: ídem
                     <td key={j}>
                       {d && (
                         <button

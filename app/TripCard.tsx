@@ -13,8 +13,8 @@ type SeatsState =
   | { status: 'error' }
   | { status: 'done'; result: SeatsResult & { passThrough: boolean } };
 
-const madridTime = (iso: string) =>
-  new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' }).format(new Date(iso));
+const madridFmt = new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' });
+const madridTime = (iso: string) => madridFmt.format(new Date(iso));
 
 function SeatsLine({ r }: { r: Extract<SeatsResult, { ok: true }> }) {
   const checked = <small>(consultado {madridTime(r.checkedAt)})</small>;
@@ -45,7 +45,9 @@ export default memo(function TripCard({ trip, dir, date, hideItinerary }: Props)
       const res = await fetch(`/api/seats?dir=${dir}&date=${date}&exp=${trip.expedition}`);
       if (res.status === 401) { window.location.href = '/login'; return; }
       if (!res.ok) throw new Error(String(res.status));
-      setSeats({ status: 'done', result: await res.json() });
+      const result: SeatsResult & { passThrough: boolean } = await res.json();
+      if (typeof result?.ok !== 'boolean') throw new Error('respuesta inesperada');
+      setSeats({ status: 'done', result });
     } catch {
       setSeats({ status: 'error' });
     }
@@ -76,8 +78,8 @@ export default memo(function TripCard({ trip, dir, date, hideItinerary }: Props)
       <div className="collapse" data-open={!hideItinerary} inert={hideItinerary}>
         <div>
           <ol className="stops">
-            {trip.stops.map((s, i) => (
-              <li key={i}><time>{s.time}</time> {s.name}</li>
+            {trip.stops.map((s) => (
+              <li key={`${s.time} ${s.name}`}><time>{s.time}</time> {s.name}</li>
             ))}
           </ol>
         </div>

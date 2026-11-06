@@ -38,8 +38,10 @@ export function siblingArrivals(t: Trip, all: Trip[]): string[] {
   return all.filter((o) => o.expedition !== t.expedition && o.departure === t.departure).map((o) => o.arrival);
 }
 
+const madridDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' });
+
 export function todayMadrid(now: Date = new Date()): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(now);
+  return madridDay.format(now);
 }
 
 export const MAX_DAYS_AHEAD = 60;
