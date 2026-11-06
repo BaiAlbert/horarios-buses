@@ -7,7 +7,7 @@ test('ida: título con foco, contador, fecha y línea de estado para lectores', 
   const { trips } = tripsFixture();
   await mockTrips(page);
   await openLoggedIn(page);
-  await expect(page.getByText('Elige el trayecto y el día')).toBeVisible();
+  await expect(page.getByText('Elige el trayecto y el día')).toBeAttached(); // oculto por CSS en móvil vertical
 
   const request = page.waitForRequest((r) => r.url().includes('/api/trips'));
   await search(page);

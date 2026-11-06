@@ -50,7 +50,7 @@ test('Escape cierra y devuelve el foco al botón', async ({ page }) => {
 
 test('un clic fuera lo cierra', async ({ page }) => {
   await openCalendar(page);
-  await page.getByText('Elige el trayecto y el día').click();
+  await page.mouse.click(2, 2); // esquina de la página: cualquier texto puede quedar tapado por el calendario o estar oculto según el tamaño
   await expect(dialog(page)).toBeHidden();
 });
 

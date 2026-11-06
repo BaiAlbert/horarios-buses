@@ -58,11 +58,11 @@ El navegador solo habla con `/api/trips` y `/api/seats`. Con `page.route()` se i
 - `@axe-core/playwright` sobre: inicio, resultados, calendario abierto, error, `/login`. Cero violaciones graves.
 - Mismo flujo de la Fase 1 con el perfil móvil (sin desbordamiento horizontal).
 
-### Fase 5 · Integración continua (≈ 30 min)
+### Fase 5 · Integración continua ✅ (≈ 30 min)
 - `.github/workflows/test.yml`: `npm ci`, `lint`, `typecheck`, `npm test`, `npx playwright install --with-deps`, `npm run test:e2e`. Informe de Playwright como artefacto si falla.
 - Hoy no hay CI: es lo que hace que los tests se ejecuten siempre y no solo «cuando me acuerdo».
 
-### Fase 6 · Documentación
+### Fase 6 · Documentación ✅
 - README: sustituir «no tiene tests automáticos» por qué cubre cada suite y cómo ejecutarlas; mover «Safari y Firefox sin verificar» a «WebKit y Firefox verificados con Playwright (WebKit no es Safari real)».
 
 ## Fuera de alcance (a propósito)

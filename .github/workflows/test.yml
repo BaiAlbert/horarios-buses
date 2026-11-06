@@ -1,0 +1,65 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Una subida nueva a la misma rama cancela las pruebas de la anterior, que ya no importan
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  calidad:
+    name: Lint, tipos y tests de lib/
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+
+  interfaz:
+    name: Interfaz · ${{ matrix.nombre }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false # que un navegador falle no oculta el resultado de los demás
+      matrix:
+        include:
+          # Chromium cubre Android, plegables y escritorio; WebKit, iPhone/iPad y Safari de escritorio; Firefox, escritorio.
+          # Chromium va partido en dos porque tiene casi 650 tests.
+          - { nombre: chromium 1/2, engine: chromium, shard: 1/2 }
+          - { nombre: chromium 2/2, engine: chromium, shard: 2/2 }
+          - { nombre: webkit, engine: webkit, shard: 1/1 }
+          - { nombre: firefox, engine: firefox, shard: 1/1 }
+    env:
+      PW_BROWSER: '' # usa el Chromium de Playwright, no el Brave de local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.engine }}
+      - run: npx playwright test --project='${{ matrix.engine }}-*' --shard=${{ matrix.shard }}
+      # Con fallos, el informe incluye capturas y trazas para ver qué pasó en el navegador
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: informe-${{ matrix.engine }}-${{ strategy.job-index }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

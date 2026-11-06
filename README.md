@@ -116,7 +116,7 @@ Estilo «cristal líquido» (iOS/macOS) con animaciones de muelle en CSS puro (`
   - Algunos buses, sobre todo de ruta, no tienen elección de asiento en la venta online. Autobusing no da su número de plazas, ni siquiera en la pantalla de datos del viajero. Si no están marcados como «Completo», la web indica «Quedan plazas» sin cifra.
 - Algunas 909 continúan hasta el aeropuerto. Sus plazas se muestran sin aviso.
 - Solo un trayecto: Madrid Estación Sur ↔ Talavera. No hay otras estaciones ni buses que solo aparezcan en autobusing.
-- La interfaz no tiene tests automáticos y se ha revisado a mano y con Playwright en Chromium; Safari y Firefox están sin verificar.
+- La interfaz se prueba automáticamente en navegadores y tamaños de pantalla simulados (ver [Tests](#tests)). No se ha probado en dispositivos físicos ni en plegables reales, y WebKit se parece a Safari pero no es Safari.
 
 ## Desarrollo
 
@@ -124,11 +124,28 @@ Estilo «cristal líquido» (iOS/macOS) con animaciones de muelle en CSS puro (`
 npm install
 echo 'APP_PASSWORD=una-contraseña' > .env.local
 npm run dev        # http://localhost:3000
-npm test           # tests con respuestas guardadas; no consultan Samar
+npm test           # tests de lib/ con respuestas guardadas; no consultan Samar
+npm run test:e2e   # tests de la interfaz en el navegador (ver «Tests»)
 npm run typecheck
+npm run lint
 ```
 
 Requiere Node 22.18 o superior, porque los tests usan `node --test` con TypeScript directamente. Los tests trabajan con HTML real guardado en `tests/fixtures/` y nunca consultan las webs.
+
+## Tests
+
+| Qué | Comando | Qué cubre |
+|---|---|---|
+| Lógica (`tests/*.test.ts`) | `npm test` | Lectura de samar.es y autobusing, reglas, calendario, sesión y reglas del proxy. Tarda un instante. |
+| Interfaz (`tests/e2e/`) | `npm run test:e2e` | Búsqueda, errores, tarjetas y plazas, filtros, calendario, login, accesibilidad (axe) y maquetación en móviles, tabletas y plegables, en vertical y en horizontal. |
+
+Los tests de interfaz usan Playwright con la web real compilada (`next build` + `next start`, en el puerto 3100) y **no consultan Samar ni autobusing**: las respuestas de `/api/trips` y `/api/seats` se sustituyen por datos construidos con el lector real sobre el HTML guardado en `tests/fixtures/`. El reloj se fija en el 3/11/2026.
+
+- **En local** todo corre en Chromium; por defecto en Brave (`/usr/bin/brave-origin`). Cambia el ejecutable con `PW_BROWSER=/ruta/al/navegador`, o con `PW_BROWSER=` (vacío) para usar el Chromium de Playwright tras `npx playwright install chromium`. Los dispositivos se simulan con su tamaño, densidad y pantalla táctil: sirve para la maquetación, pero no detecta fallos propios de Safari o Firefox.
+- **En GitHub Actions** (`.github/workflows/test.yml`, en cada subida a `main` y en cada pull request) cada dispositivo usa su motor real: **WebKit** para iPhone y iPad (y escritorio), **Chromium** para Android, plegables y escritorio, y **Firefox** en escritorio. También pasan `lint`, `typecheck` y `npm test`.
+- Para probar todos los motores en tu máquina: `npx playwright install firefox webkit` y `PW_TODOS=1 npm run test:e2e` (WebKit solo está soportado oficialmente en Ubuntu y Debian).
+- Un proyecto concreto: `npx playwright test --project=chromium-ipad-mini-horizontal`. Un archivo: `npx playwright test calendario`. Con el informe de un fallo: `npx playwright show-report`.
+- Los dispositivos están en `DEVICES` de `playwright.config.ts`: iPhone SE, Galaxy S9+, iPhone 15, Pixel 7, Galaxy S24, iPhone 15 Pro Max, Galaxy Tab S9, iPad Mini, iPad Pro 11, Galaxy Z Fold 6 (cerrado y abierto) y Fold 7 (abierto).
 
 > Next.js 16 y React 19 traen cambios respecto a lo que quizá conozcas. Ante la duda, la documentación de la versión instalada está en `node_modules/next/dist/docs/`.
 
@@ -154,7 +171,9 @@ Si `APP_PASSWORD` no está definida, nadie puede entrar.
 ```
 app/            interfaz (buscador, tarjetas, calendario), login y rutas /api/trips y /api/seats
 lib/            lectura de samar.ts y autobusing.ts, reglas de negocio, caché, calendario y sesión
-tests/          tests con HTML real guardado (tests/fixtures)
+tests/          tests de lib/ con HTML real guardado (tests/fixtures)
+tests/e2e/      tests de la interfaz con Playwright
+.github/        pruebas automáticas en GitHub Actions
 docs/           investigación de fuentes, diseño y plan de la primera versión
 samples/        muestras reales de las respuestas de Samar y autobusing
 scripts/        análisis del GTFS y del HTML, en Python

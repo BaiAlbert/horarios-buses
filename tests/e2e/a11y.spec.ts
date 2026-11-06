@@ -12,6 +12,8 @@ async function sinViolaciones(page: Page) {
 for (const esquema of ['light', 'dark'] as const) {
   test.describe(`esquema ${esquema}`, () => {
     test.use({ colorScheme: esquema });
+    // el contraste no depende del tamaño: en dispositivos solo se repite el tema claro, para comprobar la maquetación
+    test.skip(({ isMobile }) => esquema === 'dark' && isMobile, 'el tema oscuro se comprueba en escritorio');
 
     test('inicio', async ({ page }) => {
       await mockTrips(page);

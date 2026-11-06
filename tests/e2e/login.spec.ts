@@ -60,6 +60,7 @@ test.describe('formulario', () => {
 
     await intento('mala');
     await expect(alert).toHaveText('Contraseña incorrecta');
+    await expect(page.getByRole('button', { name: 'Entrar', exact: true })).toBeEnabled(); // la acción terminó del todo (con la máquina cargada el 2.º intento se solapaba)
     // se mide el segundo intento: el primero incluye el arranque en frío de la acción y daría por bueno un retardo de 0
     expect(await intento('mala2')).toBeGreaterThanOrEqual(900); // el retardo de 1 s frena los intentos seguidos
     await expect(page.getByLabel('Contraseña')).toHaveAttribute('aria-invalid', 'true');
