@@ -10,12 +10,13 @@ html {
 }
 
 /* ───────── Barra de desplazamiento ─────────
-   Redondeada, sin carril ni flechas, del tono del tema, y solo visible mientras hay scroll (ScrollbarFade.tsx
-   pone data-scrolling en <html>). El color es una propiedad registrada para que el cambio se pueda transicionar. */
+   Redondeada, sin carril ni flechas y del tono del tema. Con ratón se ve siempre, más tenue en reposo; en táctil
+   solo aparece mientras hay scroll y se desvanece (ScrollbarFade.tsx pone data-scrolling en <html>). El color es una propiedad registrada para que el cambio se pueda transicionar. */
 @property --scroll-thumb { syntax: '<color>'; inherits: false; initial-value: transparent; }
 /* Sin herencia: animar el color solo repinta la barra de ese elemento. Con herencia, cada fotograma del desvanecido
    recalculaba los estilos de toda la página. Cada elemento con scroll propio (el calendario) lo declara aquí. */
 html, .calendar { --scroll-thumb: transparent; transition: --scroll-thumb 600ms ease-out; }
+@media (pointer: fine) { html, .calendar { --scroll-thumb: var(--scrollbar-idle); } }
 html[data-scrolling], html[data-scrolling] .calendar { --scroll-thumb: var(--scrollbar); transition-duration: 150ms; }
 /* Ratón (Chromium y Safari de escritorio): estas reglas solo valen si no hay scrollbar-color */
 ::-webkit-scrollbar { width: 10px; height: 10px; background: transparent; }
@@ -433,6 +434,7 @@ a.primary { text-decoration: none; }
 .seats { margin-top: 14px; }
 .seats-ok, .seats-full { padding: 12px 16px; border-radius: var(--r-sm); animation: pop var(--t-spring) var(--spring-bounce); transform-origin: 0 0; }
 .seats-ok { background: var(--ok-bg); color: var(--ok-fg); }
+.seats-full { background: var(--full-bg); color: var(--full-fg); } /* «Completo» no es un aviso: tono de error, no ámbar */
 .seats-ok small, .seats-full small { opacity: 0.85; }
 .seats p + p { margin-top: 6px; }
 .note { font-size: 0.85rem; text-wrap: pretty; }
