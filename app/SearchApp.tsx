@@ -46,6 +46,7 @@ export default function SearchApp() {
   const [state, setState] = useState<State>({ status: 'idle' });
   const [kinds, setKinds] = useState<TripKind[]>(ALL_KINDS);
   const inflight = useRef<AbortController | null>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
     // la página se genera en el build: «hoy» se calcula en el navegador
@@ -111,6 +112,15 @@ export default function SearchApp() {
   }, [done?.data, kinds]);
   const total = done?.data.trips.length ?? 0;
 
+  // tras cada búsqueda el foco pasa al título de los resultados (no a toda la lista, que no es una región viva)
+  useEffect(() => { heading.current?.focus(); }, [done?.data]);
+
+  // lo único que se anuncia: una línea de estado, no las tarjetas
+  const status = loading ? 'Buscando buses…'
+    : state.status === 'error' ? (state.offline ? 'Sin conexión a internet.' : 'No se pudo consultar Samar.')
+    : done ? (total === 0 ? 'No hay buses para este día.' : `${visible.length === total ? total : `${visible.length} de ${total}`} buses, ${longDate(done.date)}`)
+    : '';
+
   return (
     <div className="layout">
       <div className="side">
@@ -143,19 +153,17 @@ export default function SearchApp() {
         </footer>
       </div>
 
-      <section id="resultados" tabIndex={-1} aria-live="polite" className="results">
+      <section id="resultados" tabIndex={-1} className="results">
+        <p className="sr" role="status">{status}</p>
         {state.status === 'idle' && <p className="idle glass">Elige el trayecto y el día, y pulsa «Buscar buses».</p>}
         {loading && (
-          <>
-            <span className="sr">Buscando buses…</span>
-            <ul className="trips" aria-hidden="true">
-              {[0, 1, 2].map((i) => (
-                <li key={i} className="skeleton glass" style={{ '--i': i } as CSSProperties}>
-                  <i style={{ '--w': '62%' } as CSSProperties} /><i style={{ '--w': '38%' } as CSSProperties} /><i />
-                </li>
-              ))}
-            </ul>
-          </>
+          <ul className="trips" aria-hidden="true">
+            {[0, 1, 2].map((i) => (
+              <li key={i} className="skeleton glass" style={{ '--i': i } as CSSProperties}>
+                <i style={{ '--w': '62%' } as CSSProperties} /><i style={{ '--w': '38%' } as CSSProperties} /><i />
+              </li>
+            ))}
+          </ul>
         )}
         {state.status === 'error' && (
           <p className="error glass empty">
@@ -164,7 +172,7 @@ export default function SearchApp() {
         {done && (
           <>
             <div className="results-head">
-              <h2>{ROUTE_LABEL[done.dir]}</h2>
+              <h2 ref={heading} tabIndex={-1}>{ROUTE_LABEL[done.dir]}</h2>
               {total > 0 && <p className="count">{visible.length === total ? `${total} buses` : `${visible.length} de ${total} buses`}</p>}
               <p className="date">{longDate(done.date)}</p>
             </div>

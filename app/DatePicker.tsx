@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type FocusEvent, type KeyboardEvent } from
 import { formatDateEs, monthGrid } from '../lib/calendar.ts';
 import { addDays } from '../lib/rules.ts';
 
-const WEEKDAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+const WEEKDAYS = [['L', 'lunes'], ['M', 'martes'], ['X', 'miércoles'], ['J', 'jueves'], ['V', 'viernes'], ['S', 'sábado'], ['D', 'domingo']];
 const fmt = (opts: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat('es-ES', { ...opts, timeZone: 'UTC' });
 const monthTitle = fmt({ month: 'long', year: 'numeric' });
 const dayLabel = fmt({ weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -90,7 +90,7 @@ export default function DatePicker({ id, value, min, max, onChange }: Props) {
             <button type="button" className="press" aria-label="Mes siguiente" disabled={current >= max.slice(0, 7)} onClick={() => shift(1)}>›</button>
           </div>
           <table onKeyDown={onGridKey}>
-            <thead><tr>{WEEKDAYS.map((w) => <th key={w} scope="col">{w}</th>)}</tr></thead>
+            <thead><tr>{WEEKDAYS.map(([letter, name]) => <th key={letter} scope="col"><span aria-hidden="true">{letter}</span><span className="sr">{name}</span></th>)}</tr></thead>
             <tbody>
               {grid.map((week, i) => (
                 <tr key={i}>
@@ -104,6 +104,7 @@ export default function DatePicker({ id, value, min, max, onChange }: Props) {
                           className={d === value ? 'selected' : d === min ? 'today' : undefined}
                           aria-label={dayLabel.format(asDate(d))}
                           aria-pressed={d === value}
+                          aria-current={d === min ? 'date' : undefined}
                           disabled={!enabled(d)}
                           onClick={() => { onChange(d); close(true); }}
                         >

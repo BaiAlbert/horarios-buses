@@ -332,7 +332,7 @@ a.primary { text-decoration: none; }
   background: var(--k-bg); color: var(--k-fg);
   transition: transform var(--t-spring) var(--spring-bounce), background-color 200ms, color 200ms, box-shadow 200ms;
 }
-@media (pointer: coarse) { .chip { min-height: 44px; } }
+@media (pointer: coarse) { .chip { min-height: 44px; } .error button { min-height: 44px; } }
 /* Pantallas estrechas: pastillas más compactas para que los tres tipos quepan en dos filas como mucho */
 @media (max-width: 559px) { .chip { font-size: 0.85rem; padding: 0 10px; gap: 6px; } .toolbar { padding: 6px; } }
 @media (max-width: 380px) { .chip { font-size: 0.82rem; padding: 0 8px; gap: 5px; } .toolbar-inner { gap: 4px; } }

@@ -45,7 +45,7 @@ test('parsers sobre fixtures reales', () => {
 test('fetchSeats 07:30 (910001): 5 peticiones, nromov correcto y cookie reenviada', async () => {
   const { calls, fetchImpl } = fakeAutobusing();
   const r = await fetchSeats(trip0730, '2026-11-03', { fetchImpl, now: () => new Date('2026-11-02T21:00:00Z') });
-  assert.deepEqual(r, { ok: true, seats: { free: 31, occupied: 19, total: 50, checkedAt: '2026-11-02T21:00:00.000Z' } });
+  assert.deepEqual(r, { ok: true, kind: 'count', free: 31, occupied: 19, total: 50, checkedAt: '2026-11-02T21:00:00.000Z' });
   assert.deepEqual(calls.map((c) => `${c.method} ${c.path}`), [
     'GET /venta/inicio_info', 'POST /venta/inicio', 'GET /venta/horarios', 'POST /venta/horarios', 'GET /venta/plazas',
   ]);
@@ -67,7 +67,7 @@ test('fetchSeats sin otros buses a esa hora: solo coincide la salida (910 20:15�
   const plazasHtml = fx('ab-plazas-0730.html').replace('03/11/2026 07:30', '03/11/2026 20:15');
   const { calls, fetchImpl } = fakeAutobusing({ plazasHtml });
   const r = await fetchSeats({ ...trip0730, departure: '20:15', arrival: '22:00' }, '2026-11-03', { fetchImpl, siblingArrivals: [], now: () => new Date('2026-11-02T21:00:00Z') });
-  assert.deepEqual(r, { ok: true, seats: { free: 31, occupied: 19, total: 50, checkedAt: '2026-11-02T21:00:00.000Z' }, matchedArrival: '22:10' });
+  assert.deepEqual(r, { ok: true, kind: 'count', free: 31, occupied: 19, total: 50, checkedAt: '2026-11-02T21:00:00.000Z', matchedArrival: '22:10' });
   const row = parseSchedule(fx('ab-horarios-ida-2026-11-03.html')).find((x) => x.departure === '20:15')!;
   assert.match(calls[3].body, new RegExp(`venta%5Bnromov_ida%5D=${row.nromov}`));
 });
@@ -139,18 +139,24 @@ test('parseSchedule incluye las salidas «Completo» (sin botón de selección)'
 test('fetchSeats: el bus está completo → full, sin seleccionar bus ni pedir plazas', async () => {
   const { calls, fetchImpl } = fakeAutobusing({ horarios: 'ab-horarios-vuelta-2026-11-06.html' });
   const r = await fetchSeats({ ...trip0730, departure: '05:00', arrival: '06:05' }, '2026-11-06', { fetchImpl, siblingArrivals: [], now: () => new Date('2026-11-05T21:00:00Z') });
-  assert.deepEqual(r, { ok: true, full: true, checkedAt: '2026-11-05T21:00:00.000Z', matchedArrival: '06:20' });
+  assert.deepEqual(r, { ok: true, kind: 'full', checkedAt: '2026-11-05T21:00:00.000Z', matchedArrival: '06:20' });
   assert.deepEqual(calls.map((c) => `${c.method} ${c.path}`), ['GET /venta/inicio_info', 'POST /venta/inicio', 'GET /venta/horarios']);
 });
 
 test('fetchSeats: bus sin elección de asiento (salta a /venta/viajeros) y no «Completo» → quedan plazas, sin número', async () => {
   const { calls, fetchImpl } = fakeAutobusing({ horariosPost: () => new Response(null, { status: 302, headers: { location: '/venta/viajeros' } }) });
   const r = await fetchSeats(trip0730, '2026-11-03', { fetchImpl, now: () => new Date('2026-11-02T21:00:00Z') });
-  assert.deepEqual(r, { ok: true, available: true, checkedAt: '2026-11-02T21:00:00.000Z' });
+  assert.deepEqual(r, { ok: true, kind: 'available', checkedAt: '2026-11-02T21:00:00.000Z' });
   assert.ok(!calls.some((c) => c.path === '/venta/viajeros' || c.path === '/venta/plazas'));
 });
 
 test('fetchSeats lanza error si autobusing devuelve 500', async () => {
   const { fetchImpl } = fakeAutobusing({ status500: true });
   await assert.rejects(fetchSeats(trip0730, '2026-11-03', { fetchImpl }));
+});
+
+test('fetchSeats corta todo el recorrido al agotar el presupuesto de tiempo, aunque cada petición tenga su propio plazo', async () => {
+  const hang = ((_url: string, init: RequestInit) =>
+    new Promise((_, reject) => init.signal!.addEventListener('abort', () => reject(init.signal!.reason)))) as unknown as typeof fetch;
+  await assert.rejects(fetchSeats(trip0730, '2026-11-03', { fetchImpl: hang, budgetMs: 20 }), { name: 'TimeoutError' });
 });
