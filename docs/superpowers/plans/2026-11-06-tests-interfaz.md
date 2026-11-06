@@ -54,7 +54,7 @@ El navegador solo habla con `/api/trips` y `/api/seats`. Con `page.route()` se i
 - `DatePicker`: abrir/cerrar con clic, Escape (devuelve el foco al botón), clic fuera, tabulador fuera; flechas ±1/±7 días; días fuera de `min`/`max` deshabilitados; mes anterior/siguiente deshabilitados en los límites; el día elegido se refleja en el botón.
 - Login: contraseña incorrecta → error (y tarda ≥ 1 s); correcta → `/` con cookie `httpOnly`; sin sesión, `/` y `/api/*` redirigen / devuelven 401; `/login`, `/robots.txt`, `/manifest.webmanifest` accesibles sin sesión.
 
-### Fase 4 · Accesibilidad y móvil (≈ 1 h) — `a11y.spec.ts`
+### Fase 4 · Accesibilidad y móvil ✅ (≈ 1 h) — `a11y.spec.ts`
 - `@axe-core/playwright` sobre: inicio, resultados, calendario abierto, error, `/login`. Cero violaciones graves.
 - Mismo flujo de la Fase 1 con el perfil móvil (sin desbordamiento horizontal).
 

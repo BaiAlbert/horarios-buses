@@ -1,7 +1,10 @@
-import { defineConfig } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 3100;
 const PASSWORD = 'test'; // la usa el servidor de pruebas y tests/e2e/helpers.ts; no es la real
+
+// shortcut: solo Brave en local; en CI PW_BROWSER='' usa el Chromium de Playwright. Firefox/WebKit, cuando se quieran
+const launchOptions = { executablePath: (process.env.PW_BROWSER ?? '/usr/bin/brave-origin') || undefined };
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -11,11 +14,9 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never' }]],
   use: { baseURL: `http://localhost:${PORT}`, trace: 'retain-on-failure', locale: 'es-ES', timezoneId: 'Europe/Madrid' },
   projects: [
-    {
-      name: 'brave',
-      // shortcut: solo Brave en local; en CI PW_BROWSER='' usa el Chromium de Playwright. Firefox/WebKit, cuando se quieran
-      use: { browserName: 'chromium', launchOptions: { executablePath: (process.env.PW_BROWSER ?? '/usr/bin/brave-origin') || undefined } },
-    },
+    { name: 'brave', testIgnore: /movil\.spec/, use: { browserName: 'chromium', launchOptions } },
+    // el mismo navegador con pantalla y táctil de móvil: solo lo que cambia con el tamaño (a11y también se repite aquí)
+    { name: 'brave-movil', testMatch: /(movil|a11y)\.spec/, use: { ...devices['Pixel 7'], browserName: 'chromium', launchOptions } },
   ],
   // build + start: es lo que se despliega, y no choca con un `next dev` abierto en el 3000
   webServer: {

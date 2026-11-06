@@ -17,6 +17,7 @@
     "react-dom": "19.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@biomejs/biome": "2.6.5",
     "@playwright/test": "^1.65.0",
     "@types/node": "^26.6.6",
