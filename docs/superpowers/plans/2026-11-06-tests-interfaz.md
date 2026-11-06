@@ -30,27 +30,27 @@ El navegador solo habla con `/api/trips` y `/api/seats`. Con `page.route()` se i
 
 ## Fases
 
-### Fase 0 · Andamiaje (≈ 1 h)
+### Fase 0 · Andamiaje ✅ (≈ 1 h)
 1. `npm i -D @playwright/test` y `npx playwright install` (Chromium, Firefox, WebKit).
 2. `playwright.config.ts`: `webServer` con `next build && next start` en un puerto propio (no `dev`: el build es lo que se despliega y evita el bloqueo de `.next` con un `dev` abierto), `APP_PASSWORD=test`, proyectos `chromium`, `firefox`, `webkit` y un perfil móvil.
 3. `tests/e2e/helpers.ts`: login por cookie, `mockTrips()`, `mockSeats()`.
 4. Script `test:e2e` en `package.json`; `test-results/` y `playwright-report/` en `.gitignore`; `tests/e2e` fuera del glob de `npm test` (ya lo está: `tests/*.test.ts` no es recursivo).
 5. Criterio de salida: un test «abre `/`, busca, ve N tarjetas» en verde en los 3 navegadores.
 
-### Fase 1 · Flujos críticos (≈ 2-3 h) — `tests/e2e/busqueda.spec.ts`
+### Fase 1 · Flujos críticos ✅ (≈ 2-3 h) — `tests/e2e/busqueda.spec.ts`
 - Búsqueda feliz de ida y de vuelta: título enfocado, contador, línea de estado, fecha larga.
 - Sin buses (`samar-vacio`): mensaje y sin barra de filtros.
 - Errores: 502 → «No se pudo consultar Samar» + Reintentar funciona; red caída → «Sin conexión»; 200 con cuerpo inválido → error, no página en blanco; 401 → redirige a `/login`.
-- Una búsqueda nueva anula la anterior (respuesta lenta + respuesta rápida: gana la última).
+- ~~Una búsqueda nueva anula la anterior~~: no se puede provocar desde la interfaz (el botón «Buscar» se desactiva mientras carga y bloquea también el Enter). Se prueba lo alcanzable: cambiar el selector con la búsqueda en vuelo no altera el trayecto del resultado.
 - Aviso de caché: `fetchedAt` de hace 12 min → «Resultados guardados… hace 12 min»; reciente → «Consultado a las».
 
-### Fase 2 · Tarjetas, filtros y preferencias (≈ 2 h) — `tarjeta.spec.ts`, `filtros.spec.ts`
+### Fase 2 · Tarjetas, filtros y preferencias ✅ (≈ 2 h) — `tarjeta.spec.ts`, `filtros.spec.ts`
 - Plazas: `count`, `full` («Completo»), `available`, no disponible (con motivo), error + reintento, `matchedArrival`, `passThrough`.
 - Filtros por tipo: contadores, «Ningún bus con los tipos seleccionados», persistencia tras recargar (`localStorage`).
 - «Ocultar paradas» y avisos de Samar: los elementos `inert` quedan fuera del foco; la preferencia persiste.
 - `localStorage` bloqueado: la página funciona igual (el `try/catch` existe por esto).
 
-### Fase 3 · Calendario y login (≈ 2 h) — `calendario.spec.ts`, `login.spec.ts`
+### Fase 3 · Calendario y login ✅ (≈ 2 h) — `calendario.spec.ts`, `login.spec.ts`
 - `DatePicker`: abrir/cerrar con clic, Escape (devuelve el foco al botón), clic fuera, tabulador fuera; flechas ±1/±7 días; días fuera de `min`/`max` deshabilitados; mes anterior/siguiente deshabilitados en los límites; el día elegido se refleja en el botón.
 - Login: contraseña incorrecta → error (y tarda ≥ 1 s); correcta → `/` con cookie `httpOnly`; sin sesión, `/` y `/api/*` redirigen / devuelven 401; `/login`, `/robots.txt`, `/manifest.webmanifest` accesibles sin sesión.
 
