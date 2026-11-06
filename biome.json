@@ -2,7 +2,7 @@
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "formatter": { "enabled": false },
   "assist": { "enabled": false },
-  "files": { "includes": ["app/**/*.ts", "app/**/*.tsx", "app/**/*.css", "lib/**", "tests/*.ts", "proxy.ts", "next.config.ts"] },
+  "files": { "includes": ["app/**/*.ts", "app/**/*.tsx", "app/**/*.css", "lib/**", "tests/*.ts", "tests/e2e/*.ts", "playwright.config.ts", "proxy.ts", "next.config.ts"] },
   "linter": {
     "domains": { "react": "recommended", "next": "recommended" },
     "rules": {
