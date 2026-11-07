@@ -1,3 +1,5 @@
+// Icono de aviso (triángulo con exclamación) que se usa junto a los avisos de Samar y de las paradas.
+// `currentColor` hace que tome el color del texto que lo rodea. aria-hidden: los lectores de pantalla lo ignoran.
 // SVG y no el carácter ⚠: cada fuente lo dibuja con un ancho distinto y en algunas sale estrecho
 export default function AlertIcon() {
   return (

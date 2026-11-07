@@ -1,3 +1,4 @@
+// Genera /manifest.webmanifest: nombre, colores e iconos para cuando se instala la web en el móvil.
 import type { MetadataRoute } from 'next';
 
 // Con display «standalone», «Añadir a pantalla de inicio» abre la web como una app (sin la barra del navegador)

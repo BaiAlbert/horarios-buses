@@ -1,3 +1,5 @@
+// PÁGINA DE ERROR: Next.js la muestra en lugar de una página cuando esta falla al pintarse
+// (un error inesperado en el código). Ofrece reintentar.
 'use client';
 
 // Next 16: retry() vuelve a pedir y pintar el contenido; reset() solo limpia el error

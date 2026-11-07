@@ -1,3 +1,6 @@
+// TARJETA DE UN BUS: hora de salida y llegada, duración, tipo, línea, avisos, paradas y el botón
+// «Ver plazas libres». SearchApp pinta una por cada bus de los resultados.
+// Al pulsar el botón, esta tarjeta (ella sola) pide las plazas a /api/seats y muestra el resultado.
 'use client';
 
 import { memo, useState } from 'react';
@@ -7,12 +10,15 @@ import { KIND_LABEL, tripKind } from '../lib/rules.ts';
 import { formatDuration, madridTime } from '../lib/calendar.ts';
 import AlertIcon from './AlertIcon.tsx';
 
+// Situación de la consulta de plazas de esta tarjeta: sin pedir, pidiendo, error, o con resultado.
 type SeatsState =
   | { status: 'idle' }
   | { status: 'loading' }
   | { status: 'error' }
   | { status: 'done'; result: SeatsResult & { passThrough: boolean } };
 
+// Texto con el resultado de plazas cuando se pudo averiguar (ok: true). Hay tres casos según `kind`.
+// `Extract<SeatsResult, { ok: true }>` = de todas las formas de SeatsResult, solo las que tienen ok: true.
 function SeatsLine({ r }: { r: Extract<SeatsResult, { ok: true }> }) {
   const checked = <small>(consultado {madridTime(r.checkedAt)})</small>;
   switch (r.kind) {
@@ -28,19 +34,24 @@ function SeatsLine({ r }: { r: Extract<SeatsResult, { ok: true }> }) {
   }
 }
 
+// Props que recibe la tarjeta desde SearchApp: el bus, el sentido y la fecha buscados (para pedir las
+// plazas), y si hay que ocultar las paradas.
 type Props = { trip: Trip; dir: Direction; date: string; hideItinerary: boolean };
 
 // memo: elegir otra fecha o trayecto en el buscador no vuelve a pintar las tarjetas ya en pantalla
+// (memo hace que el componente solo se repinte si cambian sus props.)
 export default memo(function TripCard({ trip, dir, date, hideItinerary }: Props) {
+  // Cada tarjeta tiene su propio estado de plazas, independiente de las demás.
   const [seats, setSeats] = useState<SeatsState>({ status: 'idle' });
   const kind = tripKind(trip);
   const dur = formatDuration(trip.duration);
 
+  // Pide las plazas de este bus a nuestra API. Solo manda el identificador; el servidor saca el resto.
   async function loadSeats() {
     setSeats({ status: 'loading' });
     try {
       const res = await fetch(`/api/seats?dir=${dir}&date=${date}&exp=${trip.expedition}`);
-      if (res.status === 401) { window.location.href = '/login'; return; }
+      if (res.status === 401) { window.location.href = '/login'; return; } // sesión caducada
       if (!res.ok) throw new Error(String(res.status));
       const result: SeatsResult & { passThrough: boolean } = await res.json();
       if (typeof result?.ok !== 'boolean') throw new Error('respuesta inesperada');
@@ -52,6 +63,7 @@ export default memo(function TripCard({ trip, dir, date, hideItinerary }: Props)
 
   return (
     <article className="card glass">
+      {/* Cabecera: 08:00 —— 1 h 35 min —— 09:35. La duración tiene versión corta (visible) y larga (para lectores de pantalla) */}
       <header className="journey">
         <time className="times">{trip.departure}</time>
         <span className="track"><span className="sr"> a </span><span aria-hidden="true">{dur.short}</span><span className="sr">{dur.long}</span></span>
@@ -63,6 +75,7 @@ export default memo(function TripCard({ trip, dir, date, hideItinerary }: Props)
         <span>{trip.stops.length} paradas</span>
       </p>
 
+      {/* Avisos de paradas de este bus, si los hay */}
       {trip.alerts.length > 0 && (
         <div className="trip-alerts" role="note">
           {trip.alerts.map((a) => (
@@ -71,6 +84,7 @@ export default memo(function TripCard({ trip, dir, date, hideItinerary }: Props)
         </div>
       )}
 
+      {/* Lista de paradas (itinerario). Se pliega con el interruptor «Ocultar paradas» */}
       {/* siempre en el DOM para poder animar el cierre; inert lo saca del foco y de los lectores de pantalla */}
       <div className="collapse" data-open={!hideItinerary} inert={hideItinerary}>
         <div>
@@ -82,19 +96,24 @@ export default memo(function TripCard({ trip, dir, date, hideItinerary }: Props)
         </div>
       </div>
 
+      {/* Zona de plazas. aria-live="polite": los lectores de pantalla anuncian el resultado cuando aparece */}
       <div className="seats" aria-live="polite">
+        {/* Aún sin consultar o consultando: el botón */}
         {(seats.status === 'idle' || seats.status === 'loading') && (
           <button type="button" className="secondary press" onClick={loadSeats} disabled={seats.status === 'loading'}>
             {seats.status === 'loading' && <span className="spinner" aria-hidden="true" />}
             {seats.status === 'loading' ? 'Consultando…' : 'Ver plazas libres'}
           </button>
         )}
+        {/* La petición falló (sin internet, servidor caído...) */}
         {seats.status === 'error' && (
           <p className="error">No se pudo consultar. <button type="button" onClick={loadSeats}>Reintentar</button></p>
         )}
+        {/* Hay respuesta: o bien plazas (ok: true) o bien el motivo por el que no se pudieron saber (ok: false) */}
         {seats.status === 'done' && (seats.result.ok ? (
           <div className={seats.result.kind === 'full' ? 'seats-full' : 'seats-ok'}>
             <SeatsLine r={seats.result} />
+            {/* El bus se emparejó en autobusing solo por la hora de salida (ver pickRow en lib/autobusing.ts) */}
             {seats.result.matchedArrival && (
               <p className="note">
                 Aviso: en el sistema de venta este bus llega a las {seats.result.matchedArrival} (en Samar, a las {trip.arrival}).

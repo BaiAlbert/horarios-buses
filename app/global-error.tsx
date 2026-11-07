@@ -1,3 +1,5 @@
+// ERROR GRAVE: como error.tsx, pero para cuando falla incluso el layout raíz (layout.tsx).
+// Por eso tiene que incluir su propio <html> y <body>.
 'use client';
 
 import './globals.css'; // global-error sustituye al layout raíz, así que no hereda sus estilos

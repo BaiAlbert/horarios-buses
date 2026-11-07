@@ -1,3 +1,5 @@
+// Genera el icono que usa el iPhone al añadir la web a la pantalla de inicio. Next.js convierte este
+// dibujo SVG en una imagen PNG de 180×180 (ImageResponse).
 import { ImageResponse } from 'next/og';
 
 export const size = { width: 180, height: 180 };
