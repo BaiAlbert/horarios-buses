@@ -68,16 +68,20 @@ test.describe('formulario', () => {
     expect((await context.cookies()).filter((c) => c.name === 'hb_session')).toHaveLength(0);
   });
 
-  test('contraseña correcta: entra, cookie httpOnly y la página ya no pide login', async ({ page, context }) => {
+  test('contraseña correcta: entra, cookie httpOnly y la página ya no pide login', async ({ page }) => {
     await page.goto('/login');
     await page.getByLabel('Contraseña').fill(PASSWORD);
-    await page.getByRole('button', { name: 'Entrar' }).click();
+    // Se lee la cabecera Set-Cookie y no context.cookies(): WebKit descarta ahí las cookies Secure de http://localhost (Chromium no)
+    const [respuesta] = await Promise.all([
+      page.waitForResponse((r) => r.request().method() === 'POST'),
+      page.getByRole('button', { name: 'Entrar' }).click(),
+    ]);
+    const cookie = (await respuesta.allHeaders())['set-cookie'] ?? '';
+    expect(cookie).toMatch(/^hb_session=[0-9a-f]{64};/);
+    for (const atributo of [/;\s*HttpOnly/i, /;\s*Secure/i, /;\s*SameSite=Lax/i, /;\s*Path=\//i, /;\s*Max-Age=2592000(;|$)/i]) expect(cookie).toMatch(atributo); // 30 días
 
     await expect(page).toHaveURL(`${ORIGIN}/`);
     await expect(page.getByRole('button', { name: 'Buscar buses' })).toBeVisible();
-    const cookie = (await context.cookies()).find((c) => c.name === 'hb_session');
-    expect(cookie).toMatchObject({ httpOnly: true, sameSite: 'Lax', path: '/', secure: true });
-    expect(cookie!.expires).toBeGreaterThan(Date.now() / 1000 + 29 * 86_400); // ~30 días
 
     await page.reload();
     await expect(page).toHaveURL(`${ORIGIN}/`);
