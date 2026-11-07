@@ -74,7 +74,7 @@ for (const esquema of ['light', 'dark'] as const) {
     test('login, también con error', async ({ page }) => {
       await page.goto('/login');
       await sinViolaciones(page);
-      await page.getByLabel('Contraseña').fill('mala');
+      await page.getByLabel('Contraseña', { exact: true }).fill('mala');
       await page.getByRole('button', { name: 'Entrar' }).click();
       await expect(page.getByRole('alert').filter({ hasText: 'Contraseña' })).toBeVisible();
       await sinViolaciones(page);

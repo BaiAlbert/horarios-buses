@@ -40,7 +40,7 @@ test.describe('sin sesión', () => {
 test.describe('formulario', () => {
   test('el campo de contraseña tiene el foco y la página no se puede enviar vacía', async ({ page }) => {
     await page.goto('/login');
-    const field = page.getByLabel('Contraseña');
+    const field = page.getByLabel('Contraseña', { exact: true });
     await expect(field).toBeFocused();
     await expect(field).toHaveAttribute('type', 'password');
     await page.getByRole('button', { name: 'Entrar' }).click();
@@ -48,11 +48,25 @@ test.describe('formulario', () => {
     expect(await field.evaluate((el: HTMLInputElement) => el.validity.valueMissing)).toBe(true);
   });
 
+  test('el ojo muestra y oculta la contraseña sin quitar el foco del campo', async ({ page }) => {
+    await page.goto('/login');
+    const field = page.getByLabel('Contraseña', { exact: true });
+    const eye = page.getByRole('button', { name: 'Mostrar contraseña' });
+    await field.fill('secreta');
+    await expect(eye).toHaveAttribute('aria-pressed', 'false');
+    await eye.click();
+    await expect(field).toHaveAttribute('type', 'text');
+    await expect(eye).toHaveAttribute('aria-pressed', 'true');
+    await expect(field).toBeFocused();
+    await eye.click();
+    await expect(field).toHaveAttribute('type', 'password');
+  });
+
   test('contraseña incorrecta: error accesible, sin sesión y con retardo', async ({ page, context }) => {
     await page.goto('/login');
     const alert = page.getByRole('alert').filter({ hasText: 'Contraseña' }); // Next añade otro alert (anunciador de rutas)
     const intento = async (clave: string) => {
-      await page.getByLabel('Contraseña').fill(clave);
+      await page.getByLabel('Contraseña', { exact: true }).fill(clave);
       const [res] = await Promise.all([page.waitForResponse((r) => r.request().method() === 'POST'), page.getByRole('button', { name: 'Entrar' }).click()]);
       await res.finished();
       return res.request().timing().responseEnd; // ms de la petición en sí, sin la espera del clic
@@ -63,14 +77,14 @@ test.describe('formulario', () => {
     await expect(page.getByRole('button', { name: 'Entrar', exact: true })).toBeEnabled(); // la acción terminó del todo (con la máquina cargada el 2.º intento se solapaba)
     // se mide el segundo intento: el primero incluye el arranque en frío de la acción y daría por bueno un retardo de 0
     expect(await intento('mala2')).toBeGreaterThanOrEqual(900); // el retardo de 1 s frena los intentos seguidos
-    await expect(page.getByLabel('Contraseña')).toHaveAttribute('aria-invalid', 'true');
+    await expect(page.getByLabel('Contraseña', { exact: true })).toHaveAttribute('aria-invalid', 'true');
     await expect(page).toHaveURL(/\/login$/);
     expect((await context.cookies()).filter((c) => c.name === 'hb_session')).toHaveLength(0);
   });
 
   test('contraseña correcta: entra, cookie httpOnly y la página ya no pide login', async ({ page, browserName }) => {
     await page.goto('/login');
-    await page.getByLabel('Contraseña').fill(PASSWORD);
+    await page.getByLabel('Contraseña', { exact: true }).fill(PASSWORD);
     // Se lee la cabecera Set-Cookie y no context.cookies(): WebKit no guarda las cookies Secure de http://localhost (Chromium y Firefox sí)
     const [respuesta] = await Promise.all([
       page.waitForResponse((r) => r.request().method() === 'POST'),

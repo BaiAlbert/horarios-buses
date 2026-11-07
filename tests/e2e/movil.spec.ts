@@ -88,7 +88,7 @@ test('el calendario cabe en la pantalla y se elige un día con el dedo', async (
 
 test('el login no se sale de la pantalla y el campo está a la vista', async ({ page }) => {
   await page.goto('/login');
-  await expect(page.getByLabel('Contraseña')).toBeInViewport();
+  await expect(page.getByLabel('Contraseña', { exact: true })).toBeInViewport();
   await expect(page.getByRole('button', { name: 'Entrar' })).toBeInViewport();
   expect(await sinScrollHorizontal(page)).toBe(true);
 });

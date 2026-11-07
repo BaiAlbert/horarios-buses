@@ -459,10 +459,27 @@ a.primary { text-decoration: none; }
   transition: box-shadow 200ms;
 }
 .login-card input:focus-visible { box-shadow: inset 0 0 0 2px var(--focus); }
+/* Campo de contraseña con el botón del ojo encima, a la derecha */
+.password-field { position: relative; }
+.login-card .password-field input { padding-right: 56px; }
+.reveal {
+  position: absolute; top: 50%; right: 4px; translate: 0 -50%; width: 44px; height: 44px;
+  display: grid; place-items: center; border: 0; border-radius: var(--r-md); background: none; color: var(--text-muted);
+  transition: color 200ms, scale 200ms var(--spring-bounce);
+}
+.reveal:hover { color: var(--text); }
+.reveal:active { scale: 0.88; }
+/* Tapado: raya dibujada y pupila pequeña. Visible: la raya se "borra" y la pupila crece con un pequeño rebote */
+.reveal-slash { stroke-dasharray: 1; stroke-dashoffset: 0; transition: stroke-dashoffset 260ms ease; }
+.reveal-pupil { transform-origin: 12px 12px; scale: 0.55; transition: scale 320ms var(--spring-bounce); }
+.reveal[aria-pressed="true"] { color: var(--accent-strong); }
+.reveal[aria-pressed="true"] .reveal-slash { stroke-dashoffset: 1; }
+.reveal[aria-pressed="true"] .reveal-pupil { scale: 1; }
 
 /* ───────── Movimiento reducido ───────── */
 @media (prefers-reduced-motion: reduce) {
   .trips > li { animation-delay: 0s; }
   .spinner, .skeleton i { animation-duration: 2.4s; }
   .press:hover:not(:disabled), .calendar td button:hover { transform: none !important; }
+  .reveal, .reveal * { transition-duration: 0s !important; }
 }
