@@ -65,6 +65,12 @@ test('mientras consulta: botón «Consultando…» desactivado', async ({ page }
   await expect(card.getByText('Quedan plazas')).toBeVisible();
 });
 
+// Refuerzo por descarte: dos filas que sobran a esa hora, con llegadas distintas de la de samar.es
+const descarte = [
+  { kind: 'full' as const, arrival: '07:10' },
+  { kind: 'count' as const, free: 3, occupied: 52, total: 55, arrival: '07:15' },
+];
+
 const cases: [string, SeatsBody, (card: ReturnType<Page['getByRole']>) => Promise<void>][] = [
   ['completo', { ok: true, kind: 'full', checkedAt: CHECKED_AT, passThrough: false }, async (card) => {
     await expect(card.locator('.seats-full')).toContainText('Completo: no quedan plazas');
@@ -84,17 +90,23 @@ const cases: [string, SeatsBody, (card: ReturnType<Page['getByRole']>) => Promis
   }],
   ['refuerzo: plazas de cada autobús por separado y en orden', {
     ok: true, kind: 'several', checkedAt: CHECKED_AT, passThrough: false,
-    buses: [{ kind: 'count', free: 3, occupied: 62, total: 65 }, { kind: 'full' }, { kind: 'available' }],
+    buses: [{ kind: 'count', free: 3, occupied: 62, total: 65, arrival: first.arrival }, { kind: 'full', arrival: first.arrival }, { kind: 'available', arrival: first.arrival }],
   }, async (card) => {
     const box = card.locator('.seats-ok');
     await expect(box).toContainText('3 autobuses a esta hora');
     await expect(box.locator('li')).toHaveText(['1.º: 3 libres de 65', '2.º: completo', '3.º: quedan plazas (sin elección de asiento)']);
   }],
   ['refuerzo con todos los autobuses completos', {
-    ok: true, kind: 'several', checkedAt: CHECKED_AT, passThrough: false, buses: [{ kind: 'full' }, { kind: 'full' }],
+    ok: true, kind: 'several', checkedAt: CHECKED_AT, passThrough: false, buses: [{ kind: 'full', arrival: first.arrival }, { kind: 'full', arrival: first.arrival }],
   }, async (card) => {
     await expect(card.locator('.seats-full')).toContainText('2 autobuses a esta hora');
     await expect(card.locator('.seats-ok')).toHaveCount(0);
+  }],
+  ['refuerzo por descarte: llegada de cada autobús y aviso', {
+    ok: true, kind: 'several', checkedAt: CHECKED_AT, passThrough: false, buses: descarte,
+  }, async (card) => {
+    await expect(card.locator('.seats li')).toHaveText(['1.º (llega 07:10 según autobusing): completo', '2.º (llega 07:15 según autobusing): 3 libres de 55']);
+    await expect(card.locator('.seats .note')).toHaveText(`Aviso: en el sistema de venta estos autobuses llegan a las 07:10 y 07:15 (en Samar, a las ${first.arrival}). Se han emparejado por descarte: puede que no hagan exactamente el mismo recorrido.`);
   }],
   ['bus que continúa más allá del trayecto', { ok: true, kind: 'available', checkedAt: CHECKED_AT, passThrough: true }, async (card) => {
     await expect(card.locator('.seats .note')).toHaveText('Este bus continúa más allá de tu trayecto; las plazas podrían referirse a todo el recorrido.');
@@ -141,7 +153,10 @@ const buyHint = (card: ReturnType<Page['getByRole']>) => card.locator('.buy .not
 
 test('comprar: un enlace por tarjeta, al paso 1 de autobusing sin hora y en otra pestaña', async ({ page }) => {
   const card = await openFirstCard(page);
-  await expect(page.getByRole('link', { name: /Comprar en autobusing/ })).toHaveCount(await page.getByRole('article').count());
+  // una por tarjeta, salvo las de buses sin venta online (en este fixture, dos 907)
+  const sold = page.getByRole('article').filter({ hasNotText: 'Este bus no se vende online.' });
+  await expect(page.getByRole('link', { name: /Comprar en autobusing/ })).toHaveCount(await sold.count());
+  expect(await sold.count()).toBe((await page.getByRole('article').count()) - 2);
 
   const link = buyLink(card);
   await expect(link).toHaveAttribute('href', buyUrl(first, DAY));
@@ -152,20 +167,24 @@ test('comprar: un enlace por tarjeta, al paso 1 de autobusing sin hora y en otra
   await expect(link).toHaveAttribute('rel', /noopener/);
   await expect(link).toHaveAttribute('rel', /noreferrer/);
   await expect(link).toHaveAccessibleName(/se abre en otra pestaña/);
-  await expect(buyHint(card)).toHaveText(`En autobusing, elige la fila ${first.departure} → ${first.arrival}. Si no aparece, este bus no se vende ahí.`);
+  await expect(buyHint(card)).toHaveText(`En autobusing, busca la fila de las ${first.departure} que llega a las ${first.arrival}. Si no está, «Ver plazas libres» te dice cuál es.`);
 });
 
 const hintCases: [string, SeatsBody, string][] = [
   ['llegada distinta en autobusing', { ok: true, kind: 'available', checkedAt: CHECKED_AT, matchedArrival: '09:58', passThrough: false },
-    `En autobusing, elige la fila ${first.departure} → 09:58. Si no aparece, este bus no se vende ahí.`],
-  ['refuerzo de 2', { ok: true, kind: 'several', checkedAt: CHECKED_AT, passThrough: false, buses: [{ kind: 'full' }, { kind: 'available' }] },
+    `En autobusing, elige la fila ${first.departure} → 09:58.`],
+  ['refuerzo de 2', { ok: true, kind: 'several', checkedAt: CHECKED_AT, passThrough: false, buses: [{ kind: 'full', arrival: first.arrival }, { kind: 'available', arrival: first.arrival }] },
     `En autobusing hay 2 filas ${first.departure} → ${first.arrival}; las dos son este horario.`],
-  ['refuerzo de 3', { ok: true, kind: 'several', checkedAt: CHECKED_AT, passThrough: false, buses: [{ kind: 'full' }, { kind: 'full' }, { kind: 'available' }] },
+  ['refuerzo de 3', { ok: true, kind: 'several', checkedAt: CHECKED_AT, passThrough: false, buses: [{ kind: 'full', arrival: first.arrival }, { kind: 'full', arrival: first.arrival }, { kind: 'available', arrival: first.arrival }] },
     `En autobusing hay 3 filas ${first.departure} → ${first.arrival}; todas son este horario.`],
   ['varias filas posibles', { ok: false, reason: 'Varias filas posibles en autobusing', passThrough: false },
     `En autobusing hay varias filas a las ${first.departure} y no se sabe cuál es este bus (llega a las ${first.arrival}).`],
-  ['plazas no disponibles', { ok: false, reason: 'No encontrado en autobusing', passThrough: false },
-    `En autobusing, elige la fila ${first.departure} → ${first.arrival}. Si no aparece, este bus no se vende ahí.`],
+  ['refuerzo por descarte', { ok: true, kind: 'several', checkedAt: CHECKED_AT, passThrough: false, buses: descarte },
+    `En autobusing, elige una de las filas de las ${first.departure} que llegan a las 07:10 y 07:15.`],
+  ['no aparece en la venta online', { ok: false, reason: 'No aparece en la venta online', passThrough: false },
+    'Ahora mismo no aparece en la venta online: puede estar completo o no venderse online.'],
+  ['otro fallo (dos buses con las mismas horas)', { ok: false, reason: 'Varios buses salen y llegan a la misma hora', passThrough: false },
+    `En autobusing, busca la fila de las ${first.departure} que llega a las ${first.arrival}.`],
 ];
 
 for (const [nombre, body, pista] of hintCases) {
@@ -177,3 +196,33 @@ for (const [nombre, body, pista] of hintCases) {
     await expect(buyLink(card)).toBeVisible(); // el enlace sigue ahí, haya o no plazas
   });
 }
+
+// TALAVERA → MADRID, 16/11: a las 05:45 salen un 909 normal (→ 07:05) y otro que solo llega hasta Alcorcón (→ 06:50).
+// En autobusing las dos filas dicen 05:45 → 07:05; solo la nota de Alcorcón las distingue.
+async function openNov16(page: Page) {
+  await mockTrips(page, tripsFixture('samar-vuelta-2026-11-16.html'));
+  await openLoggedIn(page);
+  await search(page);
+}
+const cardAt = (page: Page, times: RegExp) =>
+  page.getByRole('article').filter({ has: page.locator('header.journey', { hasText: times }) });
+
+test('comprar: pistas de los dos 05:45 (el normal y el de Alcorcón)', async ({ page }) => {
+  await openNov16(page);
+  const alcorcon = cardAt(page, /05:45.*06:50/);
+  const normal = cardAt(page, /05:45.*07:05/);
+  await expect(buyHint(alcorcon)).toHaveText('En autobusing, elige la fila de las 05:45 que dice «solo llega hasta Alcorcón» (allí puede poner otra hora de llegada).');
+  await expect(buyHint(normal)).toHaveText('En autobusing, busca la fila de las 05:45 que llega a las 07:05 (la que no dice «solo llega hasta Alcorcón»). Si no está, «Ver plazas libres» te dice cuál es.');
+
+  await mockSeats(page, { ok: true, kind: 'count', free: 8, occupied: 44, total: 52, checkedAt: CHECKED_AT, matchedArrival: '07:05', passThrough: false });
+  await seatsButton(alcorcon).click();
+  await expect(buyHint(alcorcon)).toHaveText('En autobusing, elige la fila 05:45 → 07:05 (la que dice «solo llega hasta Alcorcón»).');
+});
+
+test('bus sin venta online (907, sin precio en samar.es): sin botones y lo dice', async ({ page }) => {
+  await openNov16(page);
+  const card = cardAt(page, /09:15.*12:25/);
+  await expect(card.getByText('Este bus no se vende online.')).toBeVisible();
+  await expect(seatsButton(card)).toHaveCount(0);
+  await expect(buyLink(card)).toHaveCount(0);
+});

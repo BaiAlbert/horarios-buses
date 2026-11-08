@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { parseResults } from '../lib/samar.ts';
 import {
   isDirect, stopsAtSantaOlalla, tripKind, KIND_LABEL, isAmbiguous, passesThrough,
-  todayMadrid, isAllowedDate, parseDirection, searchDate, buyUrl, onlyToAlcorcon, siblingArrivals,
+  todayMadrid, isAllowedDate, parseDirection, searchDate, buyUrl, onlyToAlcorcon, siblingArrivals, alcorconTwin,
 } from '../lib/rules.ts';
 
 const { trips } = parseResults(readFileSync(new URL('./fixtures/samar-ida-2026-11-03.html', import.meta.url), 'utf8'));
@@ -91,4 +91,10 @@ test('siblingArrivals e isAmbiguous solo cuentan buses con la misma marca de Alc
   const twin = { ...on16('05:45', '06:50'), arrival: '07:05' }; // mismas horas, pero de Alcorcón
   assert.equal(isAmbiguous(normal, [normal, twin]), false);
   assert.equal(isAmbiguous(normal, [normal, { ...normal, expedition: 'otro' }]), true);
+});
+
+test('alcorconTwin: el bus normal que sale a la misma hora que uno de Alcorcón', () => {
+  assert.equal(alcorconTwin(on16('05:45', '07:05'), nov16), true);
+  assert.equal(alcorconTwin(on16('05:45', '06:50'), nov16), false); // él es el de Alcorcón
+  assert.equal(alcorconTwin(on16('06:00', '07:20'), nov16), false);
 });

@@ -76,6 +76,12 @@ export function isAmbiguous(t: Trip, all: Trip[]): boolean {
   return all.some((o) => sameSlot(t, o) && o.arrival === t.arrival);
 }
 
+// ¿`t` es un bus normal que sale a la misma hora que otro de Alcorcón? Entonces en autobusing hay a esa hora una
+// fila con la nota de Alcorcón que NO es la suya (y puede tener sus mismas horas), y la pista de compra lo dice.
+export function alcorconTwin(t: Trip, all: Trip[]): boolean {
+  return !onlyToAlcorcon(t) && all.some((o) => o.expedition !== t.expedition && o.departure === t.departure && onlyToAlcorcon(o));
+}
+
 // Horas de llegada de los otros buses que salen a la misma hora que `t`, con su misma marca (las usa pickRow).
 export function siblingArrivals(t: Trip, all: Trip[]): string[] {
   return all.filter((o) => sameSlot(t, o)).map((o) => o.arrival);
