@@ -77,22 +77,26 @@ export function parseSeatMap(html: string): { when: string | null; free: number;
  * (llegan 09:15 y 09:58). Para el bus de las 10:00 no hay coincidencia exacta; la fila de 09:15 ya es del otro
  * bus, así que solo queda la de 09:58 → se elige esa, con exact: false (y se avisa al usuario de la diferencia).
  * Es preferible no dar plazas que dar las de otro bus.
+ *
+ * REFUERZO: a veces autobusing tiene varias filas idénticas (misma salida y llegada) para un solo bus de
+ * samar.es, porque ese horario lleva más de un autobús (el 09/11, 05:15→06:35: dos filas, 65 y 60 asientos).
+ * Entonces se devuelven todas, en el orden de la tabla, y fetchSeats consulta las plazas de cada una.
  */
 export function pickRow(
   trip: { departure: string; arrival: string },
   siblingArrivals: string[], // horas de llegada de los OTROS buses de samar.es que salen a la misma hora
   rows: ScheduleRow[],
-): { row: ScheduleRow; exact: boolean } | null {
+): { rows: ScheduleRow[]; exact: boolean } | null {
   const sameDeparture = rows.filter((r) => r.departure === trip.departure);
   const exact = sameDeparture.filter((r) => r.arrival === trip.arrival);
-  if (exact.length === 1) return { row: exact[0], exact: true }; // caso normal: una única coincidencia exacta
-  if (exact.length > 1) return null; // varias filas idénticas: imposible saber cuál es
+  // caso normal: una única coincidencia exacta (o varias, si es un refuerzo)
+  if (exact.length > 0) return { rows: exact, exact: true };
   // Filas a esa hora que no son de ningún otro bus de samar.es...
   const free = sameDeparture.filter((r) => !siblingArrivals.includes(r.arrival));
   // ...y otros buses de samar.es a esa hora que tampoco encontraron su fila (si los hay, la duda es real).
   const unmatchedSiblings = siblingArrivals.filter((a) => !sameDeparture.some((r) => r.arrival === a));
   // `cond ? a : b` es un "if" en una línea: si cond es verdad da a, si no, b.
-  return free.length === 1 && unmatchedSiblings.length === 0 ? { row: free[0], exact: false } : null;
+  return free.length === 1 && unmatchedSiblings.length === 0 ? { rows: [free[0]], exact: false } : null;
 }
 
 const toSpanish = (date: string) => date.split('-').reverse().join('/'); // 2026-11-03 → 03/11/2026
@@ -157,8 +161,16 @@ export async function fetchSeats(
   const rows = parseSchedule(await request('/venta/horarios'));
   const picked = pickRow(trip, siblingArrivals ?? [], rows);
   // Sin la lista de hermanos (siblingArrivals) solo nos fiamos de una coincidencia exacta.
-  if (!picked || (!picked.exact && !siblingArrivals)) return { ok: false, reason: 'No encontrado en autobusing' };
-  const { row } = picked; // "desestructuración": equivale a const row = picked.row;
+  if (!picked || (!picked.exact && !siblingArrivals)) {
+    // Filas a esa hora que no son de otro bus de samar.es: si no queda ninguna, el bus no está en autobusing;
+    // si queda alguna, está pero no se sabe cuál es (y no se arriesga a dar las plazas de otro).
+    // (Sin la lista de hermanos, siblingArrivals = null, no se puede descartar nada: «no encontrado».)
+    const candidates = rows.filter((r) => r.departure === trip.departure && !siblingArrivals?.includes(r.arrival));
+    const reason = siblingArrivals && candidates.length > 0 ? 'Varias filas posibles en autobusing' : 'No encontrado en autobusing';
+    return { ok: false, reason };
+  }
+  if (picked.rows.length > 1) return { ok: false, reason: 'Varias filas posibles en autobusing' }; // provisional (refuerzo)
+  const row = picked.rows[0];
   const matchedArrival = row.arrival !== trip.arrival ? { matchedArrival: row.arrival } : {};
   if (row.full) return { ok: true, kind: 'full', checkedAt: now().toISOString(), ...matchedArrival };
   if (!row.nromov) return { ok: false, reason: 'autobusing no permite seleccionar este bus' };

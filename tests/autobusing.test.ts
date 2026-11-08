@@ -59,7 +59,7 @@ test('fetchSeats 07:30 (910001): 5 peticiones, nromov correcto y cookie reenviad
 test('fetchSeats: bus de samar.es sin pareja en autobusing (910 20:15→22:00) → ok:false', async () => {
   const { calls, fetchImpl } = fakeAutobusing();
   const r = await fetchSeats({ ...trip0730, departure: '20:15', arrival: '22:00' }, '2026-11-03', { fetchImpl });
-  assert.equal(r.ok, false);
+  assert.deepEqual(r, { ok: false, reason: 'No encontrado en autobusing' }); // sin la lista de hermanos no se descarta
   assert.ok(!calls.some((c) => c.path === '/venta/plazas'));
 });
 
@@ -110,19 +110,41 @@ const at = (departure: string, arrival: string) => ({ departure, arrival });
 test('pickRow: empareja por descarte cuando samar.es tiene otro bus a la misma hora (06:00 del 06/11)', () => {
   // samar: 909 06:00→07:20 y 910 06:00→07:50; autobusing: 06:00-07:20 (Completo) y 06:00-07:55
   const r910 = pickRow(at('06:00', '07:50'), ['07:20'], vueltaRows)!;
-  assert.deepEqual([r910.row.arrival, r910.exact], ['07:55', false]);
+  assert.deepEqual([r910.rows.map((x) => x.arrival), r910.exact], [['07:55'], false]);
   const r909 = pickRow(at('06:00', '07:20'), ['07:50'], vueltaRows)!;
-  assert.deepEqual([r909.row.arrival, r909.exact, r909.row.full], ['07:20', true, true]);
+  assert.deepEqual([r909.rows.map((x) => x.arrival), r909.exact, r909.rows[0].full], [['07:20'], true, true]);
 });
 
 test('pickRow: solo coincide la salida y no hay más buses a esa hora → empareja sin exactitud', () => {
   const r = pickRow(at('05:00', '06:05'), [], vueltaRows)!;
-  assert.deepEqual([r.row.arrival, r.exact], ['06:20', false]);
+  assert.deepEqual([r.rows.map((x) => x.arrival), r.exact], [['06:20'], false]);
+});
+
+test('pickRow: refuerzo, dos filas idénticas 07:00→08:20 → devuelve las dos', () => {
+  const r = pickRow(at('07:00', '08:20'), ['09:00', '09:00'], vueltaRows)!;
+  assert.deepEqual([r.rows.length, r.exact], [2, true]);
+});
+
+const nov09 = parseSchedule(fx('ab-horarios-vuelta-2026-11-09.html'));
+
+test('pickRow: refuerzo, dos filas idénticas 05:15→06:35 → devuelve las dos en orden', () => {
+  const r = pickRow(at('05:15', '06:35'), ['07:05'], nov09)!;
+  assert.deepEqual([r.exact, r.rows.map((x) => x.nromov)], [true, ['4123139', '4123140']]);
+});
+
+test('fetchSeats: 905 de las 10:30 (12:00), sin fila propia → «No encontrado en autobusing»', async () => {
+  const { fetchImpl } = fakeAutobusing({ horarios: 'ab-horarios-vuelta-2026-11-09.html' });
+  const r = await fetchSeats({ ...trip0730, departure: '10:30', arrival: '12:00' }, '2026-11-09', { fetchImpl, siblingArrivals: ['11:50', '12:30'] });
+  assert.deepEqual(r, { ok: false, reason: 'No encontrado en autobusing' });
+});
+
+test('fetchSeats: 910 05:15→07:05 con dos filas libres (07:10 y 07:15) → «Varias filas posibles en autobusing»', async () => {
+  const { fetchImpl } = fakeAutobusing({ horarios: 'ab-horarios-vuelta-2026-11-09.html' });
+  const r = await fetchSeats({ ...trip0730, departure: '05:15', arrival: '07:05' }, '2026-11-09', { fetchImpl, siblingArrivals: ['06:35'] });
+  assert.deepEqual(r, { ok: false, reason: 'Varias filas posibles en autobusing' });
 });
 
 test('pickRow: dudas → null', () => {
-  // autobusing tiene dos filas idénticas 07:00-08:20
-  assert.equal(pickRow(at('07:00', '08:20'), ['09:00', '09:00'], vueltaRows), null);
   // dos buses de samar sin pareja exacta y dos filas libres: no se puede saber cuál es cuál
   const rows = [{ departure: '10:00', arrival: '11:00', nromov: '1', full: false }, { departure: '10:00', arrival: '11:30', nromov: '2', full: false }];
   assert.equal(pickRow(at('10:00', '11:10'), ['11:40'], rows), null);
