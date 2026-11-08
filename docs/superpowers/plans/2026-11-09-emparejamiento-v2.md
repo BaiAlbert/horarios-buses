@@ -42,7 +42,7 @@
 
 ---
 
-### Tarea 1: marca de Alcorcón en reglas y en la tabla de autobusing, y fixtures del 16/11
+### Task 1: marca de Alcorcón en reglas y en la tabla de autobusing, y fixtures del 16/11
 
 **Files:**
 - Create:
@@ -81,7 +81,7 @@
 - [ ] **Paso 5: ejecutar** `npm test`. Se espera que pasen todos, salvo los de `pickRow`/`fetchSeats` que dependen del flujo viejo de 05:00. Si alguno falla, se arregla en la Tarea 2 y aquí se apunta cuál es.
 - [ ] **Paso 6: commit** con `feat: marca «solo llega hasta Alcorcón» en samar.es y en la tabla de autobusing`.
 
-### Tarea 2: `pickRow` por marca, descarte con varias filas y llegada en cada autobús
+### Task 2: `pickRow` por marca, descarte con varias filas y llegada en cada autobús
 
 **Files:**
 - Modify: `lib/autobusing.ts` (`pickRow`, `fetchSeats`, tipo `SeatsResult`).
@@ -136,7 +136,7 @@
 - [ ] **Paso 4: ejecutar** `npm test` y `npm run typecheck`. Se espera que todo pase, salvo los errores de tipos de `app/TripCard.tsx` y de los e2e por `SeveralBus`, que se arreglan en la Tarea 4. Si hay errores, se listan.
 - [ ] **Paso 5: commit** con `fix: no mezclar buses de Alcorcón y normales; por descarte se asignan todas las filas sobrantes`.
 
-### Tarea 3: `Trip.onlineSale` y la ruta `/api/seats`
+### Task 3: `Trip.onlineSale` y la ruta `/api/seats`
 
 **Files:**
 - Modify:
@@ -160,7 +160,7 @@
 - [ ] **Paso 4: ejecutar** `npm test`. Se espera que pase. Revisar con `grep -n "onlineSale" app/api/seats/route.ts` que el corte va antes de `getSeats`.
 - [ ] **Paso 5: commit** con `feat: los buses sin precio en samar.es no se venden online`.
 
-### Tarea 4: tarjeta — sin venta online, lista con llegadas, avisos y pistas
+### Task 4: tarjeta — sin venta online, lista con llegadas, avisos y pistas
 
 **Files:**
 - Modify:
@@ -224,7 +224,7 @@ Textos exactos (`{s}` = salida de samar.es, `{l}` = llegada de samar.es):
 - [ ] **Paso 4: ejecutar** `npm test`, `npm run typecheck`, `npm run lint` y `npm run test:e2e`. Se espera que todo pase en los tres proyectos (escritorio, iPhone SE y Pixel 7).
 - [ ] **Paso 5: commit** con `feat: pistas de compra por marca de Alcorcón, refuerzo por descarte y buses sin venta online`.
 
-### Tarea 5: documentación y comprobación final
+### Task 5: documentación y comprobación final
 
 **Files:**
 - Modify:
