@@ -29,6 +29,7 @@ export type Trip = {
   originCode: string; // código de la parada de origen que usa el sistema de venta (autobusing)
   destinationCode: string; // código de la parada de destino en el sistema de venta
   alerts: string[]; // avisos de alguna parada de este bus (obras, cambios de ubicación...)
+  onlineSale: boolean; // false si samar.es le pone precio 0,00: se paga en el bus, no se vende online (línea 907)
 };
 // Lo que se saca de una página de resultados: los buses y los avisos generales de Samar.
 export type SearchResult = { trips: Trip[]; notices: string[] };
@@ -38,7 +39,8 @@ export type SearchResult = { trips: Trip[]; notices: string[] };
 export type TripsResponse = SearchResult & { fetchedAt: string };
 // Subir al cambiar la forma de Trip/TripsResponse o de SeatsResult (lib/autobusing.ts): la caché de datos de
 // Next sobrevive a despliegues y reinicios. 5: plazas de refuerzo (kind 'several').
-export const SCHEMA_VERSION = 5;
+// 6: Trip.onlineSale y la llegada de cada autobús de un refuerzo.
+export const SCHEMA_VERSION = 6;
 
 // Nos presentamos como un navegador Firefox normal: algunas webs rechazan peticiones de "robots".
 export const USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:132.0) Gecko/20100101 Firefox/132.0';
@@ -138,6 +140,9 @@ export function parseResults(html: string): SearchResult {
           // `(t): t is string` es solo para TypeScript: le dice que tras el filtro ya no hay undefined.
           .filter((t): t is string => !!t),
       )],
+      // Solo un precio 0 explícito quita la venta: si samar.es deja de poner el precio, se sigue ofreciendo
+      // la compra (y autobusing dirá si el bus está o no). `data-can-buy-online` no sirve: es true en todos.
+      onlineSale: !(attrs.price && Number(attrs.price) === 0),
     };
   });
 

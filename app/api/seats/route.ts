@@ -42,6 +42,8 @@ export async function GET(request: Request) {
   const trip = trips.find((t) => t.expedition === exp);
   if (!trip) return Response.json({ error: 'Bus no encontrado' }, { status: 404 });
   const passThrough = passesThrough(trip);
+  // Sin precio en samar.es (línea 907): no está en la venta online, así que ni se pregunta a autobusing.
+  if (!trip.onlineSale) return Response.json({ ok: false, reason: 'No se vende online', passThrough });
   // Dos buses con la misma salida y llegada: no hay forma de saber cuál es cuál en autobusing.
   if (isAmbiguous(trip, trips)) {
     return Response.json({ ok: false, reason: 'Varios buses salen y llegan a la misma hora', passThrough });

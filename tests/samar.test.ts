@@ -24,6 +24,7 @@ test('parseResults ida 03/11: 46 buses con itinerario', () => {
       { name: 'Talavera de La Reina', time: '02:05' },
     ],
     alerts: [],
+    onlineSale: true,
   });
   assert.equal(notices.length, 2);
   assert.match(notices[1], /^LOS DÍAS 1 Y 2 DE NOVIEMBRE/);
@@ -76,6 +77,19 @@ test('si cambia la forma de Trip hay que subir SCHEMA_VERSION (la caché sobrevi
   const trip = parseResults(fx('samar-ida-2026-11-03.html')).trips[0];
   assert.deepEqual(
     { version: SCHEMA_VERSION, keys: Object.keys(trip).sort() },
-    { version: 5, keys: ['alerts', 'arrival', 'departure', 'destinationCode', 'duration', 'expedition', 'line', 'originCode', 'stops'] },
+    { version: 6, keys: ['alerts', 'arrival', 'departure', 'destinationCode', 'duration', 'expedition', 'line', 'onlineSale', 'originCode', 'stops'] },
   );
+});
+
+test('onlineSale: los buses con precio 0,00 en samar.es (907 del 16/11) no se venden online', () => {
+  const { trips } = parseResults(fx('samar-vuelta-2026-11-16.html'));
+  const sinVenta = trips.filter((t) => !t.onlineSale).map((t) => `${t.departure} ${t.line}`);
+  assert.deepEqual(sinVenta, ['09:15 907', '11:45 907', '17:00 907']);
+});
+
+test('onlineSale: sin precio o con un precio vacío, se supone que sí se vende (un cambio de samar.es no quita la compra)', () => {
+  const html = fx('samar-vuelta-2026-11-16.html');
+  for (const changed of [html.replaceAll('data-price="0.00"', 'data-price=""'), html.replace(/data-price="[^"]*"/g, '')]) {
+    assert.ok(parseResults(changed).trips.every((t) => t.onlineSale));
+  }
 });
