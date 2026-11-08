@@ -37,6 +37,7 @@ Además, los horarios tienen que ser los **de ese día**. La fuente oficial en d
 - Tipo de bus: **Directo** (2 paradas), **Ruta · Santa Olalla** o **Ruta** (de ruta sin parar en Santa Olalla). Se pueden filtrar, y el filtro cuenta cuántos hay de cada tipo.
 - Los avisos de Samar, tanto los generales como los de parada («solo llega hasta Alcorcón»).
 - **Ver plazas libres**, bus a bus y solo cuando se pulsa.
+- **Comprar en autobusing** desde cada bus: abre la venta oficial con el trayecto y la fecha, y dice qué fila de su tabla elegir. El pago y los datos del viajero se quedan en autobusing.
 - Interruptor **Ocultar paradas** para una lista compacta. Las preferencias se recuerdan en el navegador.
 - Entrada con una contraseña compartida y oculta a los buscadores (`noindex`).
 
@@ -87,6 +88,11 @@ Las plazas solo existen en el motor de venta, así que se recorre su flujo con u
 - autobusing no da ni línea ni número de expedición, así que el bus se empareja **por hora de salida y de llegada**, o por descarte entre los que salen a la misma hora. La web comprueba además que la página de plazas es de la fecha y la hora pedidas.
 - Ante la duda, dice **«Plazas no disponibles»** con el motivo, antes que enseñar el dato de otro bus.
 - Distingue entre plazas con cifra, «Completo» y «Quedan plazas» (buses sin elección de asiento que no están completos).
+- **Refuerzos.** Si un horario lleva varios autobuses (varias filas idénticas en autobusing), enseña las plazas de cada uno por separado. Cada fila se consulta con su propia sesión, porque la página de plazas no dice qué fila se eligió.
+
+### Comprar
+
+El enlace abre el paso 1 de autobusing con el trayecto y la fecha, pero **sin la hora**. Con la hora, como hace samar.es, autobusing elige él el bus de esa hora y salta a las plazas, aunque a esa hora salgan varios. Sin ella, tras el paso 1 enseña su tabla Horarios y quien compra elige la fila exacta (salida y llegada) que le indica la tarjeta. Este enlace no hace ninguna petición desde el servidor.
 
 ### Cuántas peticiones salen
 
