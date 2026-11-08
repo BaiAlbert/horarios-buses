@@ -5,7 +5,7 @@
 
 import { memo, useState } from 'react';
 import type { Direction, Trip } from '../lib/samar.ts';
-import type { SeatsResult } from '../lib/autobusing.ts';
+import type { BusSeats, SeatsResult } from '../lib/autobusing.ts';
 import { KIND_LABEL, tripKind } from '../lib/rules.ts';
 import { formatDuration, madridTime } from '../lib/calendar.ts';
 import AlertIcon from './AlertIcon.tsx';
@@ -17,7 +17,21 @@ type SeatsState =
   | { status: 'error' }
   | { status: 'done'; result: SeatsResult & { passThrough: boolean } };
 
-// Texto con el resultado de plazas cuando se pudo averiguar (ok: true). Hay tres casos según `kind`.
+// Una línea de la lista del refuerzo: «1.º: 3 libres de 65», «2.º: completo»...
+function busLine(b: BusSeats, i: number) {
+  const n = `${i + 1}.º`;
+  switch (b.kind) {
+    case 'count': return `${n}: ${b.free} libres de ${b.total}`;
+    case 'full': return `${n}: completo`;
+    case 'available': return `${n}: quedan plazas (sin elección de asiento)`;
+  }
+}
+
+// ¿No queda ningún sitio? (para pintar el resultado con el color de «Completo»)
+const allFull = (r: Extract<SeatsResult, { ok: true }>) =>
+  r.kind === 'full' || (r.kind === 'several' && r.buses.every((b) => b.kind === 'full'));
+
+// Texto con el resultado de plazas cuando se pudo averiguar (ok: true). Hay cuatro casos según `kind`.
 // `Extract<SeatsResult, { ok: true }>` = de todas las formas de SeatsResult, solo las que tienen ok: true.
 function SeatsLine({ r }: { r: Extract<SeatsResult, { ok: true }> }) {
   const checked = <small>(consultado {madridTime(r.checkedAt)})</small>;
@@ -30,6 +44,19 @@ function SeatsLine({ r }: { r: Extract<SeatsResult, { ok: true }> }) {
       return (
         <p><strong>Quedan plazas</strong> {checked}<br />
           <small>Este bus no tiene elección de asiento en la venta online, así que no se puede saber cuántas.</small></p>
+      );
+    // REFUERZO: ese horario lleva varios autobuses (varias filas iguales en autobusing). Se listan en el orden
+    // de la tabla de autobusing, para saber qué fila elegir al comprar si se quiere el que tiene más sitio.
+    // (<> </> es un "fragmento": agrupa varios elementos sin añadir ninguna etiqueta al HTML.)
+    case 'several':
+      return (
+        <>
+          <p><strong>{r.buses.length} autobuses a esta hora</strong> {checked}</p>
+          <ol className="buses">
+            {/* cada línea empieza por su número («1.º»...), así que sirve de key única */}
+            {r.buses.map(busLine).map((line) => <li key={line}>{line}</li>)}
+          </ol>
+        </>
       );
   }
 }
@@ -111,7 +138,7 @@ export default memo(function TripCard({ trip, dir, date, hideItinerary }: Props)
         )}
         {/* Hay respuesta: o bien plazas (ok: true) o bien el motivo por el que no se pudieron saber (ok: false) */}
         {seats.status === 'done' && (seats.result.ok ? (
-          <div className={seats.result.kind === 'full' ? 'seats-full' : 'seats-ok'}>
+          <div className={allFull(seats.result) ? 'seats-full' : 'seats-ok'}>
             <SeatsLine r={seats.result} />
             {/* El bus se emparejó en autobusing solo por la hora de salida (ver pickRow en lib/autobusing.ts) */}
             {seats.result.matchedArrival && (

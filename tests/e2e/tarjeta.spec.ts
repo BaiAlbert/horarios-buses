@@ -81,6 +81,20 @@ const cases: [string, SeatsBody, (card: ReturnType<Page['getByRole']>) => Promis
   ['llegada distinta en autobusing', { ok: true, kind: 'available', checkedAt: CHECKED_AT, matchedArrival: '12:34', passThrough: false }, async (card) => {
     await expect(card.locator('.note')).toHaveText(`Aviso: en el sistema de venta este bus llega a las 12:34 (en Samar, a las ${first.arrival}). Se ha emparejado solo por la hora de salida.`);
   }],
+  ['refuerzo: plazas de cada autobús por separado y en orden', {
+    ok: true, kind: 'several', checkedAt: CHECKED_AT, passThrough: false,
+    buses: [{ kind: 'count', free: 3, occupied: 62, total: 65 }, { kind: 'full' }, { kind: 'available' }],
+  }, async (card) => {
+    const box = card.locator('.seats-ok');
+    await expect(box).toContainText('3 autobuses a esta hora');
+    await expect(box.locator('li')).toHaveText(['1.º: 3 libres de 65', '2.º: completo', '3.º: quedan plazas (sin elección de asiento)']);
+  }],
+  ['refuerzo con todos los autobuses completos', {
+    ok: true, kind: 'several', checkedAt: CHECKED_AT, passThrough: false, buses: [{ kind: 'full' }, { kind: 'full' }],
+  }, async (card) => {
+    await expect(card.locator('.seats-full')).toContainText('2 autobuses a esta hora');
+    await expect(card.locator('.seats-ok')).toHaveCount(0);
+  }],
   ['bus que continúa más allá del trayecto', { ok: true, kind: 'available', checkedAt: CHECKED_AT, passThrough: true }, async (card) => {
     await expect(card.locator('.note')).toHaveText('Este bus continúa más allá de tu trayecto; las plazas podrían referirse a todo el recorrido.');
   }],

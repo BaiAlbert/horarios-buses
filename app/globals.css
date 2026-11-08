@@ -435,7 +435,9 @@ a.primary { text-decoration: none; }
 .seats-ok { background: var(--ok-bg); color: var(--ok-fg); }
 .seats-full { background: var(--full-bg); color: var(--full-fg); } /* «Completo» no es un aviso: tono de error, no ámbar */
 .seats-ok small, .seats-full small { opacity: 0.85; }
-.seats p + p { margin-top: 6px; }
+/* refuerzo: lista de autobuses; el texto ya lleva su número («1.º»), así que sin viñetas */
+.buses { list-style: none; margin: 4px 0 0; padding: 0; font-variant-numeric: tabular-nums; }
+.seats p + p, .seats .buses + p { margin-top: 6px; }
 .note { font-size: 0.85rem; text-wrap: pretty; }
 .unavailable { color: var(--text-muted); font-size: 0.92rem; }
 
