@@ -162,6 +162,8 @@ const hintCases: [string, SeatsBody, string][] = [
     `En autobusing hay 2 filas ${first.departure} → ${first.arrival}; las dos son este horario.`],
   ['refuerzo de 3', { ok: true, kind: 'several', checkedAt: CHECKED_AT, passThrough: false, buses: [{ kind: 'full' }, { kind: 'full' }, { kind: 'available' }] },
     `En autobusing hay 3 filas ${first.departure} → ${first.arrival}; todas son este horario.`],
+  ['varias filas posibles', { ok: false, reason: 'Varias filas posibles en autobusing', passThrough: false },
+    `En autobusing hay varias filas a las ${first.departure} y no se sabe cuál es este bus (llega a las ${first.arrival}).`],
   ['plazas no disponibles', { ok: false, reason: 'No encontrado en autobusing', passThrough: false },
     `En autobusing, elige la fila ${first.departure} → ${first.arrival}. Si no aparece, este bus no se vende ahí.`],
 ];

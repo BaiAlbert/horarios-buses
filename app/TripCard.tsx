@@ -70,6 +70,10 @@ function buyHint(trip: Trip, seats: SeatsState): string {
     const n = r.buses.length;
     return `En autobusing hay ${n} filas ${trip.departure} → ${trip.arrival}; ${n === 2 ? 'las dos' : 'todas'} son este horario.`;
   }
+  // El bus está en autobusing pero no se sabe en qué fila: no decir «si no aparece, no se vende», porque sí se vende.
+  if (seats.status === 'done' && !seats.result.ok && seats.result.reason === 'Varias filas posibles en autobusing') {
+    return `En autobusing hay varias filas a las ${trip.departure} y no se sabe cuál es este bus (llega a las ${trip.arrival}).`;
+  }
   // `?.` y `??`: si no hay resultado (r es null) o no trae matchedArrival, se usa la llegada de samar.es
   const arrival = r?.matchedArrival ?? trip.arrival;
   return `En autobusing, elige la fila ${trip.departure} → ${arrival}. Si no aparece, este bus no se vende ahí.`;
