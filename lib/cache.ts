@@ -26,12 +26,13 @@ const tripsCached = unstable_cache(
 );
 
 const seatsCached = unstable_cache(
-  (trip: Trip, date: string, siblings: string[], _bucket: number) => fetchSeats(trip, date, { siblingArrivals: siblings }),
+  (trip: Trip, date: string, siblings: string[], alcorconTwin: boolean, _bucket: number) =>
+    fetchSeats(trip, date, { siblingArrivals: siblings, alcorconTwin }),
   ['seats', `v${SCHEMA_VERSION}`],
   { revalidate: SEATS_TTL_S },
 );
 
 // Lo que usa el resto del código: horarios de un sentido y día, y plazas de un bus.
 export const getTrips = (dir: Direction, date: string) => tripsCached(dir, date, bucket(TRIPS_TTL_S));
-export const getSeats = (trip: Trip, date: string, siblings: string[]) =>
-  seatsCached(trip, date, siblings, bucket(SEATS_TTL_S));
+export const getSeats = (trip: Trip, date: string, siblings: string[], alcorconTwin: boolean) =>
+  seatsCached(trip, date, siblings, alcorconTwin, bucket(SEATS_TTL_S));

@@ -325,3 +325,24 @@ test('fetchSeats: más de 3 filas sobrantes por descarte → ok:false sin selecc
   assert.deepEqual(r, { ok: false, reason: 'Demasiadas filas iguales en autobusing' });
   assert.equal(picksOf(calls).length, 0);
 });
+
+// REVISIÓN: si autobusing cambiara el HTML de la nota y ya no se leyera, el 05:45 normal recibiría también la fila
+// de Alcorcón (sus plazas mezcladas). Si samar.es tiene un bus de Alcorcón a esa hora y ninguna fila lleva la nota,
+// mejor «no disponible».
+test('fetchSeats: hay bus de Alcorcón en samar.es pero ninguna fila con la nota → ok:false, sin seleccionar', async () => {
+  const horariosHtml = fx('ab-horarios-vuelta-2026-11-17.html').replaceAll('<td colspan="4">', '<td colspan="5">');
+  const { calls, fetchImpl } = fakeAutobusing({ horariosHtml });
+  const normal = bus16('05:45', '07:05');
+  const r = await fetchSeats(normal, '2026-11-16', { fetchImpl, siblingArrivals: siblingArrivals(normal, nov16), alcorconTwin: true });
+  assert.deepEqual(r, { ok: false, reason: 'No se distingue el bus de Alcorcón en autobusing' });
+  assert.equal(picksOf(calls).length, 0);
+});
+
+// REVISIÓN: el 903 de las 11:15 (→ 13:15). La única fila 11:15 → 13:10 puede ser del 901, del 902 o suya; los dos
+// primeros son ambiguos entre sí, así que no «son dueños» de esa fila: no se sabe, no «no aparece».
+test('fetchSeats: 903 11:15→13:15, con una sola fila 11:15→13:10 que 901 y 902 se disputan → «Varias filas posibles»', async () => {
+  const { fetchImpl } = fakeAutobusing({ horarios: 'ab-horarios-vuelta-2026-11-17.html' });
+  const t903 = bus16('11:15', '13:15');
+  const r = await fetchSeats(t903, '2026-11-16', { fetchImpl, siblingArrivals: siblingArrivals(t903, nov16) });
+  assert.deepEqual(r, { ok: false, reason: 'Varias filas posibles en autobusing' });
+});

@@ -9,7 +9,7 @@ import { cookies } from 'next/headers';
 import { SESSION_COOKIE, isValidSession } from '../../../lib/auth.ts';
 import { getSeats, getTrips } from '../../../lib/cache.ts';
 import type { Trip } from '../../../lib/samar.ts';
-import { isAllowedDate, isAmbiguous, parseDirection, passesThrough, siblingArrivals } from '../../../lib/rules.ts';
+import { alcorconTwin, isAllowedDate, isAmbiguous, parseDirection, passesThrough, siblingArrivals } from '../../../lib/rules.ts';
 
 // Tiempo máximo (en segundos) que Vercel deja ejecutarse esta función. Ver SEATS_BUDGET_MS en autobusing.ts.
 export const maxDuration = 30;
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    return Response.json({ ...(await getSeats(trip, date, siblingArrivals(trip, trips))), passThrough });
+    return Response.json({ ...(await getSeats(trip, date, siblingArrivals(trip, trips), alcorconTwin(trip, trips))), passThrough });
   } catch (e) {
     console.error('autobusing', e);
     return Response.json({ error: 'No se pudo consultar autobusing' }, { status: 502 });

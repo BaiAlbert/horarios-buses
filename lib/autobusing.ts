@@ -37,6 +37,8 @@ export type FetchSeatsOptions = {
   now?: () => Date;
   // llegadas de los otros buses de samar.es con la misma salida; sin ellas solo vale la coincidencia exacta
   siblingArrivals?: string[] | null;
+  // ¿sale a la misma hora otro bus de samar.es que solo llega hasta Alcorcón? (alcorconTwin en rules.ts)
+  alcorconTwin?: boolean;
   // tiempo máximo de todo el recorrido (hasta 5 peticiones): tiene que quedar por debajo del maxDuration de la ruta
   budgetMs?: number;
 };
@@ -208,13 +210,19 @@ const failed = (r: BusSeats | Failure): r is Failure => 'reason' in r;
 export async function fetchSeats(
   trip: Trip,
   date: string,
-  { fetchImpl = fetch, now = () => new Date(), siblingArrivals = null, budgetMs = SEATS_BUDGET_MS }: FetchSeatsOptions = {},
+  { fetchImpl = fetch, now = () => new Date(), siblingArrivals = null, alcorconTwin = false, budgetMs = SEATS_BUDGET_MS }: FetchSeatsOptions = {},
 ): Promise<SeatsResult> {
   // Un único "cronómetro" para todo el recorrido (todas las sesiones): si se agota, se cancela lo pendiente.
   const budget = AbortSignal.timeout(budgetMs);
   const session = openSession(fetchImpl, budget);
   const rows = await readSchedule(session, trip, date);
   if (!rows) return { ok: false, reason: 'autobusing no reconoce el trayecto' };
+  // Si a esta hora samar.es tiene un bus de Alcorcón, alguna fila de autobusing tiene que llevar la nota. Si
+  // ninguna la lleva, quizá autobusing cambió su HTML y ya no se lee: sin la nota se mezclarían el bus normal y
+  // el de Alcorcón, así que mejor «no disponible».
+  if ((alcorconTwin || onlyToAlcorcon(trip)) && !rows.some((r) => r.departure === trip.departure && r.alcorcon)) {
+    return { ok: false, reason: 'No se distingue el bus de Alcorcón en autobusing' };
+  }
 
   // Encontrar nuestro bus en la tabla.
   const picked = pickRow(trip, siblingArrivals ?? [], rows);
@@ -224,7 +232,10 @@ export async function fetchSeats(
     // si queda alguna, está pero no se sabe cuál es (y no se arriesga a dar las plazas de otro).
     // (Sin la lista de hermanos, siblingArrivals = null, no se puede descartar nada: «no encontrado».)
     // Que no aparezca no prueba que no se venda online: autobusing esconde los autobuses llenos.
-    const candidates = sameSlot(trip, rows).filter((r) => !siblingArrivals?.includes(r.arrival));
+    // Una llegada repetida en los hermanos (901 y 902 de las 11:15, los dos → 13:10) no hace suya la fila: esos
+    // buses son ambiguos entre sí, y la fila podría ser de este (903 → 13:15). Entonces no se sabe, no «no aparece».
+    const owned = siblingArrivals?.filter((a, _, all) => all.indexOf(a) === all.lastIndexOf(a));
+    const candidates = sameSlot(trip, rows).filter((r) => !owned?.includes(r.arrival));
     const reason = siblingArrivals && candidates.length > 0 ? 'Varias filas posibles en autobusing' : 'No aparece en la venta online';
     return { ok: false, reason };
   }

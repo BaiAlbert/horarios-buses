@@ -178,7 +178,7 @@ const hintCases: [string, SeatsBody, string][] = [
   ['refuerzo de 3', { ok: true, kind: 'several', checkedAt: CHECKED_AT, passThrough: false, buses: [{ kind: 'full', arrival: first.arrival }, { kind: 'full', arrival: first.arrival }, { kind: 'available', arrival: first.arrival }] },
     `En autobusing hay 3 filas ${first.departure} → ${first.arrival}; todas son este horario.`],
   ['varias filas posibles', { ok: false, reason: 'Varias filas posibles en autobusing', passThrough: false },
-    `En autobusing hay varias filas a las ${first.departure} y no se sabe cuál es este bus (llega a las ${first.arrival}).`],
+    `En autobusing no se sabe qué fila de las ${first.departure} es este bus (en Samar llega a las ${first.arrival}).`],
   ['refuerzo por descarte', { ok: true, kind: 'several', checkedAt: CHECKED_AT, passThrough: false, buses: descarte },
     `En autobusing, elige una de las filas de las ${first.departure} que llegan a las 07:10 y 07:15.`],
   ['no aparece en la venta online', { ok: false, reason: 'No aparece en la venta online', passThrough: false },
@@ -225,4 +225,15 @@ test('bus sin venta online (907, sin precio en samar.es): sin botones y lo dice'
   await expect(card.getByText('Este bus no se vende online.')).toBeVisible();
   await expect(seatsButton(card)).toHaveCount(0);
   await expect(buyLink(card)).toHaveCount(0);
+});
+
+// REVISIÓN: una respuesta de /api/trips de antes de onlineSale (guardada en el navegador justo antes de desplegar)
+// no trae ese campo; si falta, el bus se vende, como dice el diseño.
+test('bus sin el dato onlineSale (respuesta antigua): se ofrecen plazas y compra', async ({ page }) => {
+  const old = tripsFixture();
+  await mockTrips(page, { ...old, trips: old.trips.map(({ onlineSale: _, ...t }) => t as typeof t & { onlineSale: boolean }) });
+  await openLoggedIn(page);
+  await search(page);
+  await expect(page.getByText('Este bus no se vende online.')).toHaveCount(0);
+  await expect(seatsButton(page.getByRole('article').first())).toBeVisible();
 });

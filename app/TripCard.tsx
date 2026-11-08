@@ -101,7 +101,7 @@ function buyHint(trip: Trip, seats: SeatsState, twin: boolean): string {
     if (r.reason === 'No aparece en la venta online') return 'Ahora mismo no aparece en la venta online: puede estar completo o no venderse online.';
     // El bus está en autobusing pero no se sabe en qué fila: no decir «no aparece», porque sí aparece.
     if (r.reason === 'Varias filas posibles en autobusing') {
-      return `En autobusing hay varias filas a las ${dep} y no se sabe cuál es este bus (llega a las ${trip.arrival}).`;
+      return `En autobusing no se sabe qué fila de las ${dep} es este bus (en Samar llega a las ${trip.arrival}).`;
     }
     return before;
   }
@@ -179,10 +179,11 @@ export default memo(function TripCard({ trip, dir, date, hideItinerary, alcorcon
       </div>
 
       {/* Bus sin precio en samar.es (línea 907): se paga en el bus, así que ni plazas ni compra */}
-      {!trip.onlineSale && <p className="seats note">Este bus no se vende online.</p>}
+      {/* `=== false`: si el dato falta (respuesta de una versión anterior), el bus se vende */}
+      {trip.onlineSale === false && <p className="seats note">Este bus no se vende online.</p>}
 
       {/* Zona de plazas. aria-live="polite": los lectores de pantalla anuncian el resultado cuando aparece */}
-      {trip.onlineSale && (<>
+      {trip.onlineSale !== false && (<>
         <div className="seats" aria-live="polite">
           {/* Aún sin consultar o consultando: el botón */}
           {(seats.status === 'idle' || seats.status === 'loading') && (
