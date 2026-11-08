@@ -86,13 +86,18 @@ Las plazas solo existen en el motor de venta, así que se recorre su flujo con u
 - **Nunca pasa del paso «Plazas».** No rellena datos ni compra nada.
 - Los códigos de parada y las horas salen siempre de los horarios de samar.es que ya están en caché, **nunca del cliente**.
 - autobusing no da ni línea ni número de expedición, así que el bus se empareja **por hora de salida y de llegada**, o por descarte entre los que salen a la misma hora. La web comprueba además que la página de plazas es de la fecha y la hora pedidas.
+- **Alcorcón.** Algunos buses de Talavera a Madrid solo llegan hasta Alcorcón. Las dos webs lo dicen (samar.es en un aviso, autobusing en una nota de la fila), y un bus solo se empareja con filas que tengan su misma marca. Así el 05:45 normal y el 05:45 de Alcorcón no se mezclan, aunque en autobusing los dos digan 05:45 → 07:05.
+- autobusing da llegadas teóricas (los directos, siempre salida + 1 h 20) y **esconde los autobuses llenos**. Por eso, si no hay fila, la tarjeta dice «No aparece en la venta online», que puede ser que esté completo.
 - Ante la duda, dice **«Plazas no disponibles»** con el motivo, antes que enseñar el dato de otro bus.
 - Distingue entre plazas con cifra, «Completo» y «Quedan plazas» (buses sin elección de asiento que no están completos).
 - **Refuerzos.** Si un horario lleva varios autobuses (varias filas idénticas en autobusing), enseña las plazas de cada uno por separado. Cada fila se consulta con su propia sesión, porque la página de plazas no dice qué fila se eligió.
+- **Refuerzos por descarte.** Si a una hora sobran filas que no coinciden con ningún bus de samar.es y solo queda un bus sin pareja, se le asignan todas (hasta 3), aunque lleguen a otras horas (05:15 → 07:05 en samar.es, 07:10 y 07:15 en autobusing). La tarjeta dice la llegada de cada uno y avisa de que puede que no hagan el mismo recorrido.
 
 ### Comprar
 
 El enlace abre el paso 1 de autobusing con el trayecto y la fecha, pero **sin la hora**. Con la hora, como hace samar.es, autobusing elige él el bus de esa hora y salta a las plazas, aunque a esa hora salgan varios. Sin ella, tras el paso 1 enseña su tabla Horarios y quien compra elige la fila exacta (salida y llegada) que le indica la tarjeta. Este enlace no hace ninguna petición desde el servidor.
+
+Los buses con precio 0,00 en samar.es (la línea 907, que se paga en el bus) no se venden online: su tarjeta lo dice y no tiene ni «Ver plazas libres» ni «Comprar».
 
 ### Cuántas peticiones salen
 

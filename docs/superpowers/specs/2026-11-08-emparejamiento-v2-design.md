@@ -1,6 +1,6 @@
 # Emparejamiento samar.es ↔ autobusing, versión 2 — diseño
 
-Fecha: 2026-11-08. Estado: pendiente de aprobación.
+Fecha: 2026-11-08. Estado: implementado (plan `docs/superpowers/plans/2026-11-09-emparejamiento-v2.md`).
 Rama: `feat/comprar-billete` (sin fusionar). Se construye encima del diseño `2026-11-08-comprar-billete-design.md`.
 Datos de partida: lo que observó el usuario a mano en Talavera → Madrid (16/11), recogido en `docs/emparejamiento/2026-11-16-hallazgos.md`. La tabla de autobusing tiene la misma estructura otros días (09/11, 17/11, 23/11, 14/12).
 
