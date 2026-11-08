@@ -36,8 +36,9 @@ export type SearchResult = { trips: Trip[]; notices: string[] };
 // `&` une dos tipos: TripsResponse tiene todo lo de SearchResult y además `fetchedAt`.
 // Es exactamente lo que la API /api/trips devuelve al navegador.
 export type TripsResponse = SearchResult & { fetchedAt: string };
-// Subir al cambiar la forma de Trip/TripsResponse: la caché de datos de Next sobrevive a despliegues y reinicios.
-export const SCHEMA_VERSION = 4;
+// Subir al cambiar la forma de Trip/TripsResponse o de SeatsResult (lib/autobusing.ts): la caché de datos de
+// Next sobrevive a despliegues y reinicios. 5: plazas de refuerzo (kind 'several').
+export const SCHEMA_VERSION = 5;
 
 // Nos presentamos como un navegador Firefox normal: algunas webs rechazan peticiones de "robots".
 export const USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:132.0) Gecko/20100101 Firefox/132.0';

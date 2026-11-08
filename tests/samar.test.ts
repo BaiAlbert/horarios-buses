@@ -76,6 +76,6 @@ test('si cambia la forma de Trip hay que subir SCHEMA_VERSION (la caché sobrevi
   const trip = parseResults(fx('samar-ida-2026-11-03.html')).trips[0];
   assert.deepEqual(
     { version: SCHEMA_VERSION, keys: Object.keys(trip).sort() },
-    { version: 4, keys: ['alerts', 'arrival', 'departure', 'destinationCode', 'duration', 'expedition', 'line', 'originCode', 'stops'] },
+    { version: 5, keys: ['alerts', 'arrival', 'departure', 'destinationCode', 'duration', 'expedition', 'line', 'originCode', 'stops'] },
   );
 });

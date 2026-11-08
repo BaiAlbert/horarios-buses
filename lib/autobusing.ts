@@ -15,11 +15,17 @@ import { TIMEOUT_MS, USER_AGENT, type Trip } from './samar.ts';
 // matchedArrival: solo coincidió la hora de salida; es la llegada que da autobusing (distinta de la de samar.es).
 // (El `?` en `matchedArrival?` significa que ese campo es opcional: puede no estar.)
 type Found = { ok: true; checkedAt: string; matchedArrival?: string };
+// Plazas de UN autobús (una fila de la tabla de autobusing). Hay tres casos según `kind`.
+export type BusSeats =
+  | { kind: 'count'; free: number; occupied: number; total: number } // se pudieron contar los asientos
+  | { kind: 'full' } // autobusing marca la salida como «Completo»
+  | { kind: 'available' }; // sin mapa de asientos, pero no está completo
+type Failure = { ok: false; reason: string }; // no se pudo averiguar; `reason` explica por qué (se muestra al usuario)
+// `Found & BusSeats` = cada uno de los tres casos de BusSeats, con los campos de Found añadidos.
 export type SeatsResult =
-  | (Found & { kind: 'count'; free: number; occupied: number; total: number }) // se pudieron contar los asientos
-  | (Found & { kind: 'full' }) // autobusing marca la salida como «Completo»
-  | (Found & { kind: 'available' }) // sin mapa de asientos, pero no está completo
-  | { ok: false; reason: string }; // no se pudo averiguar; `reason` explica por qué (se muestra al usuario)
+  | (Found & BusSeats) // lo normal: un autobús por horario
+  | (Found & { kind: 'several'; buses: BusSeats[] }) // refuerzo: un autobús por fila, en el orden de la tabla
+  | Failure;
 
 // Opciones de fetchSeats. Todas son opcionales (`?`): los tests las usan para simular internet y el reloj.
 export type FetchSeatsOptions = {
@@ -32,6 +38,8 @@ export type FetchSeatsOptions = {
 };
 
 const BASE = 'https://regular.autobusing.es';
+// Como mucho se consultan 3 filas idénticas (refuerzo); con más, algo raro pasa y no se lanzan más sesiones.
+const MAX_ROWS = 3;
 export const SEATS_BUDGET_MS = 18_000; // + hasta 10 s de samar.es en la ruta, dentro de los 30 s de maxDuration
 
 // Las funciones parseXxx leen trozos concretos del HTML de autobusing con expresiones regulares.
@@ -101,15 +109,11 @@ export function pickRow(
 
 const toSpanish = (date: string) => date.split('-').reverse().join('/'); // 2026-11-03 → 03/11/2026
 
-// FUNCIÓN PRINCIPAL: consulta las plazas de un bus recorriendo el formulario de venta de autobusing.
-// Los parámetros entre { } con `=` son opciones con valor por defecto (en producción se usan los reales).
-export async function fetchSeats(
-  trip: Trip,
-  date: string,
-  { fetchImpl = fetch, now = () => new Date(), siblingArrivals = null, budgetMs = SEATS_BUDGET_MS }: FetchSeatsOptions = {},
-): Promise<SeatsResult> {
-  // Un único "cronómetro" para todo el recorrido: si se agota, se cancelan las peticiones pendientes.
-  const budget = AbortSignal.timeout(budgetMs);
+// Una sesión de autobusing: su cookie y una función para hacer peticiones con ella. Cada sesión es un
+// "visitante" distinto para autobusing; el refuerzo usa una por fila (ver fetchSeats).
+type Session = { request: (path: string, body?: URLSearchParams) => Promise<string>; lastRedirect: () => string };
+
+function openSession(fetchImpl: typeof fetch, budget: AbortSignal): Session {
   // autobusing recuerda en qué paso del formulario vamos mediante una cookie de sesión ("rack.session").
   // Como aquí no hay navegador, la guardamos a mano y la reenviamos en cada petición.
   let cookie = '';
@@ -138,27 +142,70 @@ export async function fetchSeats(
     lastRedirect = res.status === 302 ? (res.headers.get('location') ?? '') : '';
     return res.text();
   };
+  return { request, lastRedirect: () => lastRedirect };
+}
 
+// PASOS 1 a 3: abrir el formulario, enviarlo y leer la tabla de horarios. null si autobusing no reconoce el trayecto.
+async function readSchedule(session: Session, trip: Trip, date: string): Promise<ScheduleRow[] | null> {
   // PASO 1: abrir el formulario con el trayecto, la hora y la fecha (como el enlace "Comprar" de samar.es).
-  const fecha = toSpanish(date);
   const qs = new URLSearchParams({
     empresa: 'samar', origen_codigo: trip.originCode, destino_codigo: trip.destinationCode, hora_ida: trip.departure, fecha_ida: date,
   });
-  const origenId = parseOrigenId(await request(`/venta/inicio_info?${qs}`));
-  if (!origenId) return { ok: false, reason: 'autobusing no reconoce el trayecto' };
+  const origenId = parseOrigenId(await session.request(`/venta/inicio_info?${qs}`));
+  if (!origenId) return null;
 
   // PASO 2: enviar ese formulario (1 billete, solo ida).
-  await request('/venta/inicio', new URLSearchParams({
+  await session.request('/venta/inicio', new URLSearchParams({
     hora_ida: trip.departure,
     'venta[origen_id]': origenId,
-    'venta[fecha_ida]': fecha,
+    'venta[fecha_ida]': toSpanish(date),
     'venta[fecha_vta]': '',
     'venta[cantidad]': '1',
     'venta[tipo_iyv]': 'ida',
   }));
 
-  // PASO 3: leer la tabla de horarios y encontrar en ella nuestro bus.
-  const rows = parseSchedule(await request('/venta/horarios'));
+  // PASO 3: leer la tabla de horarios.
+  return parseSchedule(await session.request('/venta/horarios'));
+}
+
+// PASOS 4 y 5: elegir una fila de la tabla y leer su mapa de asientos.
+async function readRow(session: Session, row: ScheduleRow, trip: Trip, date: string): Promise<BusSeats | Failure> {
+  if (row.full) return { kind: 'full' }; // «Completo»: no hace falta seleccionarla
+  if (!row.nromov) return { ok: false, reason: 'autobusing no permite seleccionar este bus' };
+
+  // PASO 4: elegir ese bus pidiendo "elegir plazas" (ir al mapa de asientos).
+  await session.request('/venta/horarios', new URLSearchParams({ 'venta[elegir_plazas_ida]': 't', 'venta[nromov_ida]': row.nromov }));
+  // si autobusing rechaza la selección, la sesión seguiría en el bus que eligió /venta/inicio (quizá otro a la misma hora)
+  // sin elección de asiento autobusing salta a los datos del viajero (no muestra plazas; no se entra). Como la fila
+  // no estaba «Completo», quedan plazas aunque no se sepa cuántas.
+  if (session.lastRedirect().endsWith('/venta/viajeros')) return { kind: 'available' };
+  if (!session.lastRedirect().endsWith('/venta/plazas')) return { ok: false, reason: 'autobusing no aceptó la selección del bus' };
+
+  // PASO 5: leer el mapa de asientos y comprobar que la fecha y hora que muestra son las de nuestro bus.
+  const map = parseSeatMap(await session.request('/venta/plazas'));
+  if (map.when !== `${toSpanish(date)} ${trip.departure}` || map.total === 0) {
+    return { ok: false, reason: 'La respuesta no corresponde al bus' };
+  }
+  return { kind: 'count', free: map.free, occupied: map.occupied, total: map.total };
+}
+
+// `r is Failure` es un "type guard": si devuelve true, TypeScript sabe que r es un Failure.
+const failed = (r: BusSeats | Failure): r is Failure => 'reason' in r;
+
+// FUNCIÓN PRINCIPAL: consulta las plazas de un bus recorriendo el formulario de venta de autobusing.
+// Los parámetros entre { } con `=` son opciones con valor por defecto (en producción se usan los reales).
+export async function fetchSeats(
+  trip: Trip,
+  date: string,
+  { fetchImpl = fetch, now = () => new Date(), siblingArrivals = null, budgetMs = SEATS_BUDGET_MS }: FetchSeatsOptions = {},
+): Promise<SeatsResult> {
+  // Un único "cronómetro" para todo el recorrido (todas las sesiones): si se agota, se cancela lo pendiente.
+  const budget = AbortSignal.timeout(budgetMs);
+  const session = openSession(fetchImpl, budget);
+  const rows = await readSchedule(session, trip, date);
+  if (!rows) return { ok: false, reason: 'autobusing no reconoce el trayecto' };
+
+  // Encontrar nuestro bus en la tabla.
   const picked = pickRow(trip, siblingArrivals ?? [], rows);
   // Sin la lista de hermanos (siblingArrivals) solo nos fiamos de una coincidencia exacta.
   if (!picked || (!picked.exact && !siblingArrivals)) {
@@ -169,24 +216,29 @@ export async function fetchSeats(
     const reason = siblingArrivals && candidates.length > 0 ? 'Varias filas posibles en autobusing' : 'No encontrado en autobusing';
     return { ok: false, reason };
   }
-  if (picked.rows.length > 1) return { ok: false, reason: 'Varias filas posibles en autobusing' }; // provisional (refuerzo)
-  const row = picked.rows[0];
-  const matchedArrival = row.arrival !== trip.arrival ? { matchedArrival: row.arrival } : {};
-  if (row.full) return { ok: true, kind: 'full', checkedAt: now().toISOString(), ...matchedArrival };
-  if (!row.nromov) return { ok: false, reason: 'autobusing no permite seleccionar este bus' };
+  if (picked.rows.length > MAX_ROWS) return { ok: false, reason: 'Demasiadas filas iguales en autobusing' };
 
-  // PASO 4: elegir ese bus pidiendo "elegir plazas" (ir al mapa de asientos).
-  await request('/venta/horarios', new URLSearchParams({ 'venta[elegir_plazas_ida]': 't', 'venta[nromov_ida]': row.nromov }));
-  // si autobusing rechaza la selección, la sesión seguiría en el bus que eligió /venta/inicio (quizá otro a la misma hora)
-  // sin elección de asiento autobusing salta a los datos del viajero (no muestra plazas; no se entra). Como la fila
-  // no estaba «Completo», quedan plazas aunque no se sepa cuántas.
-  if (lastRedirect.endsWith('/venta/viajeros')) return { ok: true, kind: 'available', checkedAt: now().toISOString(), ...matchedArrival };
-  if (!lastRedirect.endsWith('/venta/plazas')) return { ok: false, reason: 'autobusing no aceptó la selección del bus' };
-
-  // PASO 5: leer el mapa de asientos y comprobar que la fecha y hora que muestra son las de nuestro bus.
-  const map = parseSeatMap(await request('/venta/plazas'));
-  if (map.when !== `${fecha} ${trip.departure}` || map.total === 0) {
-    return { ok: false, reason: 'La respuesta no corresponde al bus' };
+  // Lo normal: una sola fila, en la misma sesión.
+  if (picked.rows.length === 1) {
+    const row = picked.rows[0];
+    const result = await readRow(session, row, trip, date);
+    if (failed(result)) return result;
+    const matchedArrival = row.arrival !== trip.arrival ? { matchedArrival: row.arrival } : {};
+    return { ok: true, ...result, checkedAt: now().toISOString(), ...matchedArrival };
   }
-  return { ok: true, kind: 'count', free: map.free, occupied: map.occupied, total: map.total, checkedAt: now().toISOString(), ...matchedArrival };
+
+  // REFUERZO: varias filas idénticas. Cada fila que hay que seleccionar va en su PROPIA sesión, porque la
+  // página de plazas no dice qué fila se eligió: si una segunda selección en la misma sesión fallara sin
+  // avisar, se darían las plazas del primer autobús dos veces. Las sesiones van a la vez (Promise.all).
+  const buses = await Promise.all(picked.rows.map(async (row, i) => {
+    if (i === 0 || row.full || !row.nromov) return readRow(session, row, trip, date); // sin selección o la primera
+    const own = openSession(fetchImpl, budget);
+    if (!(await readSchedule(own, trip, date))) return { ok: false, reason: 'autobusing no reconoce el trayecto' } as const;
+    return readRow(own, row, trip, date);
+  }));
+  // Si alguna fila falla, falla todo: mejor «no disponible» que un resultado a medias.
+  const failure = buses.find(failed);
+  if (failure) return failure;
+  // (`as`: aquí ya no hay ningún Failure, pero TypeScript no lo deduce del `find` de arriba)
+  return { ok: true, kind: 'several', buses: buses as BusSeats[], checkedAt: now().toISOString() };
 }

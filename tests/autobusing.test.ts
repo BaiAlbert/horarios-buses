@@ -10,23 +10,39 @@ const trip0730 = trips.find((x) => x.expedition === '910001')!;
 
 type Call = { method: string; path: string; cookie: string | null; body: string };
 
-// Imita a autobusing: cookie en inicio_info, 302 en los POST y fixtures en los GET.
-function fakeAutobusing(opts: { plazas?: string; plazasHtml?: string; horarios?: string; status500?: boolean; horariosPost?: () => Response } = {}) {
+// Imita a autobusing: una cookie nueva (s1, s2…) en cada inicio_info, 302 en los POST y fixtures en los GET.
+// Recuerda qué nromov eligió cada sesión, para devolver con plazasByNromov el mapa de asientos de esa fila.
+function fakeAutobusing(opts: {
+  plazas?: string; plazasHtml?: string; plazasByNromov?: Record<string, string>;
+  horarios?: string; horariosHtml?: string; status500?: boolean; horariosPost?: (body: string) => Response;
+} = {}) {
   const calls: Call[] = [];
+  let sessions = 0;
+  const pickedBy = new Map<string | null, string | null>(); // cookie → nromov elegido
   const fetchImpl = (async (input: string, init: RequestInit = {}) => {
     const url = new URL(input);
     const method = init.method ?? 'GET';
     const headers = new Headers(init.headers);
-    calls.push({ method, path: url.pathname, cookie: headers.get('cookie'), body: init.body ? String(init.body) : '' });
+    const cookie = headers.get('cookie');
+    const body = init.body ? String(init.body) : '';
+    calls.push({ method, path: url.pathname, cookie, body });
     if (opts.status500) return new Response('error', { status: 500 });
     const key = `${method} ${url.pathname}`;
     if (key === 'GET /venta/inicio_info') {
-      return new Response(fx('ab-inicio.html'), { headers: { 'set-cookie': 'rack.session=abc; path=/; HttpOnly' } });
+      sessions++;
+      return new Response(fx('ab-inicio.html'), { headers: { 'set-cookie': `rack.session=s${sessions}; path=/; HttpOnly` } });
     }
-    if (key === 'POST /venta/horarios' && opts.horariosPost) return opts.horariosPost();
+    if (key === 'POST /venta/horarios') {
+      pickedBy.set(cookie, new URLSearchParams(body).get('venta[nromov_ida]'));
+      if (opts.horariosPost) return opts.horariosPost(body);
+    }
     if (method === 'POST') return new Response(null, { status: 302, headers: { location: '/venta/plazas' } });
-    if (key === 'GET /venta/horarios') return new Response(fx(opts.horarios ?? 'ab-horarios-ida-2026-11-03.html'));
-    if (key === 'GET /venta/plazas') return new Response(opts.plazasHtml ?? fx(opts.plazas ?? 'ab-plazas-0730.html'));
+    if (key === 'GET /venta/horarios') return new Response(opts.horariosHtml ?? fx(opts.horarios ?? 'ab-horarios-ida-2026-11-03.html'));
+    if (key === 'GET /venta/plazas') {
+      const nromov = pickedBy.get(cookie);
+      if (opts.plazasByNromov && nromov) return new Response(fx(opts.plazasByNromov[nromov]));
+      return new Response(opts.plazasHtml ?? fx(opts.plazas ?? 'ab-plazas-0730.html'));
+    }
     return new Response('not found', { status: 404 });
   }) as unknown as typeof fetch;
   return { calls, fetchImpl };
@@ -52,7 +68,7 @@ test('fetchSeats 07:30 (910001): 5 peticiones, nromov correcto y cookie reenviad
   assert.match(calls[1].body, /venta%5Bfecha_ida%5D=03%2F11%2F2026/);
   assert.match(calls[1].body, /venta%5Borigen_id%5D=287/);
   assert.match(calls[3].body, /venta%5Bnromov_ida%5D=4119481/);
-  assert.ok(calls.slice(1).every((c) => c.cookie === 'rack.session=abc'));
+  assert.ok(calls.slice(1).every((c) => c.cookie === 'rack.session=s1'));
   assert.ok(!calls.some((c) => c.method === 'POST' && c.path === '/venta/plazas'));
 });
 
@@ -181,4 +197,61 @@ test('fetchSeats corta todo el recorrido al agotar el presupuesto de tiempo, aun
   const hang = ((_url: string, init: RequestInit) =>
     new Promise((_, reject) => init.signal!.addEventListener('abort', () => reject(init.signal!.reason)))) as unknown as typeof fetch;
   await assert.rejects(fetchSeats(trip0730, '2026-11-03', { fetchImpl: hang, budgetMs: 20 }), { name: 'TimeoutError' });
+});
+
+// REFUERZO (09/11, Talavera→Madrid): samar.es tiene un bus 05:15→06:35 (909) y otro 05:15→07:05 (910);
+// autobusing tiene DOS filas 05:15→06:35 (4123139: 65 asientos, 3 libres; 4123140: 60 asientos, 4 libres).
+const refuerzo = { ...trip0730, departure: '05:15', arrival: '06:35' };
+const refuerzoOpts = { siblingArrivals: ['07:05'], now: () => new Date('2026-11-08T21:00:00Z') };
+const plazasRefuerzo = { '4123139': 'ab-plazas-0515-a.html', '4123140': 'ab-plazas-0515-b.html' };
+const radioOf = (nromov: string) => `<input id="venta_nromov_ida" name="venta[nromov_ida]" type="radio" value="${nromov}"/>`;
+const picksOf = (calls: Call[]) => calls.filter((c) => c.method === 'POST' && c.path === '/venta/horarios');
+
+test('fetchSeats: refuerzo → plazas de cada fila por separado, cada una con su propia sesión', async () => {
+  const { calls, fetchImpl } = fakeAutobusing({ horarios: 'ab-horarios-vuelta-2026-11-09.html', plazasByNromov: plazasRefuerzo });
+  const r = await fetchSeats(refuerzo, '2026-11-09', { fetchImpl, ...refuerzoOpts });
+  assert.deepEqual(r, {
+    ok: true, kind: 'several', checkedAt: '2026-11-08T21:00:00.000Z',
+    buses: [{ kind: 'count', free: 3, occupied: 62, total: 65 }, { kind: 'count', free: 4, occupied: 56, total: 60 }],
+  });
+  const picks = picksOf(calls);
+  assert.equal(picks.length, 2);
+  assert.equal(new Set(picks.map((c) => c.cookie)).size, 2); // cada nromov, con una cookie distinta
+  assert.ok(!calls.some((c) => c.method === 'POST' && c.path === '/venta/plazas'));
+});
+
+test('fetchSeats: refuerzo con una fila «Completo» → esa sale completa sin seleccionarla, la otra con plazas', async () => {
+  const horariosHtml = fx('ab-horarios-vuelta-2026-11-09.html').replace(radioOf('4123139'), 'Completo');
+  const { calls, fetchImpl } = fakeAutobusing({ horariosHtml, plazasByNromov: plazasRefuerzo });
+  const r = await fetchSeats(refuerzo, '2026-11-09', { fetchImpl, ...refuerzoOpts });
+  assert.deepEqual(r, {
+    ok: true, kind: 'several', checkedAt: '2026-11-08T21:00:00.000Z',
+    buses: [{ kind: 'full' }, { kind: 'count', free: 4, occupied: 56, total: 60 }],
+  });
+  assert.ok(!picksOf(calls).some((c) => c.body.includes('4123139')));
+});
+
+test('fetchSeats: refuerzo con una fila sin elección de asiento → esa fila «quedan plazas»', async () => {
+  const horariosPost = (body: string) =>
+    new Response(null, { status: 302, headers: { location: body.includes('4123140') ? '/venta/viajeros' : '/venta/plazas' } });
+  const { fetchImpl } = fakeAutobusing({ horarios: 'ab-horarios-vuelta-2026-11-09.html', plazasByNromov: plazasRefuerzo, horariosPost });
+  const r = await fetchSeats(refuerzo, '2026-11-09', { fetchImpl, ...refuerzoOpts });
+  assert.ok(r.ok && r.kind === 'several');
+  assert.deepEqual(r.buses, [{ kind: 'count', free: 3, occupied: 62, total: 65 }, { kind: 'available' }]);
+});
+
+test('fetchSeats: refuerzo y una sesión recibe plazas de otra hora → todo ok:false, sin resultados a medias', async () => {
+  const { fetchImpl } = fakeAutobusing({
+    horarios: 'ab-horarios-vuelta-2026-11-09.html',
+    plazasByNromov: { ...plazasRefuerzo, '4123140': 'ab-plazas-0730.html' },
+  });
+  assert.deepEqual(await fetchSeats(refuerzo, '2026-11-09', { fetchImpl, ...refuerzoOpts }), { ok: false, reason: 'La respuesta no corresponde al bus' });
+});
+
+test('fetchSeats: más de 3 filas idénticas → ok:false sin seleccionar ninguna', async () => {
+  const row = (n: string) => `<tr><td class="radio">${radioOf(n)}</td><td><strong>05:15</strong></td><td><strong>06:35</strong></td><td class="numeric">11,33€</td></tr>`;
+  const horariosHtml = ['1', '2', '3', '4'].map(row).join('');
+  const { calls, fetchImpl } = fakeAutobusing({ horariosHtml });
+  assert.deepEqual(await fetchSeats(refuerzo, '2026-11-09', { fetchImpl, ...refuerzoOpts }), { ok: false, reason: 'Demasiadas filas iguales en autobusing' });
+  assert.equal(picksOf(calls).length, 0);
 });
