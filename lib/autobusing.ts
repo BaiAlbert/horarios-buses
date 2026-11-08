@@ -9,7 +9,7 @@
 // El problema difícil: samar.es y autobusing son sistemas distintos y no comparten un identificador del bus.
 // Hay que encontrar "el mismo bus" en autobusing comparando horas de salida y llegada (ver pickRow más abajo).
 import { TIMEOUT_MS, USER_AGENT, type Trip } from './samar.ts';
-import { AUTOBUSING_URL as BASE } from './rules.ts';
+import { ALCORCON, AUTOBUSING_URL as BASE } from './rules.ts';
 
 // Resultado de consultar las plazas de un bus. Es una "unión discriminada": un tipo que puede tener
 // varias formas, y el campo `ok` / `kind` dice cuál es. El código que lo usa mira esos campos para saber qué hay.
@@ -52,17 +52,21 @@ export function parseOrigenId(html: string): string | null {
 // Una fila de la tabla de horarios de autobusing.
 // nromov: número interno del bus en autobusing (hace falta para elegirlo); null si no se puede elegir.
 // full: true si la fila pone «Completo».
-export type ScheduleRow = { departure: string; arrival: string; nromov: string | null; full: boolean };
+// alcorcon: true si la nota de debajo de la fila dice que solo llega hasta Alcorcón (ver ALCORCON en rules.ts).
+export type ScheduleRow = { departure: string; arrival: string; nromov: string | null; full: boolean; alcorcon: boolean };
 
-// Paso 3: lee la tabla de horarios (una fila por bus: salida, llegada y botón para elegirlo).
+// Paso 3: lee la tabla de horarios (una fila por bus: salida, llegada, precio y botón para elegirlo).
 // La celda «radio» tiene el botón de selección (con nromov) o un texto como «Completo».
+// Tras el precio puede venir la nota de la fila: <tr><td colspan="4">Esta expedición solo llega hasta…</td></tr>
+// (el `(?: … )?` del final la hace opcional: muchas filas no la traen).
 export function parseSchedule(html: string): ScheduleRow[] {
-  return [...html.matchAll(/<tr><td class="radio">([\s\S]*?)<\/td><td><strong>(\d\d:\d\d)<\/strong><\/td><td><strong>(\d\d:\d\d)<\/strong><\/td>/g)]
+  return [...html.matchAll(/<tr><td class="radio">([\s\S]*?)<\/td><td><strong>(\d\d:\d\d)<\/strong><\/td><td><strong>(\d\d:\d\d)<\/strong><\/td>(?:<td[^>]*>[^<]*<\/td>(?:<tr><td colspan="4">([^<]*)<\/td><\/tr>)?)?/g)]
     .map((m) => ({
       departure: m[2],
       arrival: m[3],
       nromov: m[1].match(/<input[^>]*value="(\d+)"/)?.[1] ?? null,
       full: /complet/i.test(m[1]),
+      alcorcon: ALCORCON.test(m[4] ?? ''),
     }));
 }
 

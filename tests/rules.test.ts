@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { parseResults } from '../lib/samar.ts';
 import {
   isDirect, stopsAtSantaOlalla, tripKind, KIND_LABEL, isAmbiguous, passesThrough,
-  todayMadrid, isAllowedDate, parseDirection, searchDate, buyUrl,
+  todayMadrid, isAllowedDate, parseDirection, searchDate, buyUrl, onlyToAlcorcon, siblingArrivals,
 } from '../lib/rules.ts';
 
 const { trips } = parseResults(readFileSync(new URL('./fixtures/samar-ida-2026-11-03.html', import.meta.url), 'utf8'));
@@ -68,4 +68,27 @@ test('buyUrl: enlace al paso 1 de autobusing con trayecto y fecha, sin hora (as�
   const u = new URL(buyUrl({ originCode: '0831', destinationCode: '0108' }, '2026-11-09'));
   assert.equal(`${u.origin}${u.pathname}`, 'https://regular.autobusing.es/venta/inicio_info');
   assert.deepEqual(Object.fromEntries(u.searchParams), { empresa: 'samar', origen_codigo: '0831', destino_codigo: '0108', fecha_ida: '2026-11-09' });
+});
+
+// Talavera → Madrid, 16/11: a las 05:45 hay un 909 normal (→ 07:05) y otro que solo llega hasta Alcorcón (→ 06:50)
+const nov16 = parseResults(readFileSync(new URL('./fixtures/samar-vuelta-2026-11-16.html', import.meta.url), 'utf8')).trips;
+const on16 = (dep: string, arr: string) => nov16.find((x) => x.departure === dep && x.arrival === arr)!;
+
+test('onlyToAlcorcon: detecta el aviso con o sin tildes y mayúsculas', () => {
+  assert.equal(onlyToAlcorcon({ alerts: ['ESTE SERVICIO SÓLO LLEGA HASTA ALCORCÓN, NO TIENE PARADA EN LA ESTACIÓN SUR'] }), true);
+  assert.equal(onlyToAlcorcon({ alerts: ['solo llega hasta alcorcon'] }), true);
+  assert.equal(onlyToAlcorcon({ alerts: [] }), false);
+  assert.equal(onlyToAlcorcon({ alerts: ['LOS BILLETES CON EL Nº 91 - 92 O 93 SALEN DE LA DÁRSENA 5'] }), false);
+  assert.equal(onlyToAlcorcon(on16('05:45', '06:50')), true);
+  assert.equal(onlyToAlcorcon(on16('05:45', '07:05')), false);
+});
+
+test('siblingArrivals e isAmbiguous solo cuentan buses con la misma marca de Alcorcón', () => {
+  assert.deepEqual(siblingArrivals(on16('05:45', '07:05'), nov16), []);
+  assert.deepEqual(siblingArrivals(on16('05:45', '06:50'), nov16), []);
+  assert.deepEqual(siblingArrivals(on16('06:00', '07:20'), nov16), ['07:50']);
+  const normal = on16('05:45', '07:05');
+  const twin = { ...on16('05:45', '06:50'), arrival: '07:05' }; // mismas horas, pero de Alcorcón
+  assert.equal(isAmbiguous(normal, [normal, twin]), false);
+  assert.equal(isAmbiguous(normal, [normal, { ...normal, expedition: 'otro' }]), true);
 });

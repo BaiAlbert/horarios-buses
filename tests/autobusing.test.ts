@@ -52,7 +52,7 @@ test('parsers sobre fixtures reales', () => {
   assert.equal(parseOrigenId(fx('ab-inicio.html')), '287');
   const rows = parseSchedule(fx('ab-horarios-ida-2026-11-03.html'));
   assert.equal(rows.length, 41);
-  assert.deepEqual(rows[0], { departure: '00:30', arrival: '02:05', nromov: '4184920', full: false });
+  assert.deepEqual(rows[0], { departure: '00:30', arrival: '02:05', nromov: '4184920', full: false, alcorcon: false });
   assert.ok(rows.some((r) => r.departure === '23:45' && r.arrival === '01:40'));
   assert.deepEqual(parseSeatMap(fx('ab-plazas-1000.html')), { when: '03/11/2026 10:00', free: 36, occupied: 14, total: 50 });
   assert.deepEqual(parseSeatMap(fx('ab-plazas-0730.html')), { when: '03/11/2026 07:30', free: 31, occupied: 19, total: 50 });
@@ -168,9 +168,23 @@ test('pickRow: dudas → null', () => {
   assert.equal(pickRow(at('04:00', '05:00'), [], vueltaRows), null);
 });
 
+test('parseSchedule lee la nota «solo llega hasta Alcorcón» de cada fila (17/11, tabla completa)', () => {
+  const rows = parseSchedule(fx('ab-horarios-vuelta-2026-11-17.html'));
+  assert.equal(rows.length, 43);
+  const flagged = rows.filter((r) => r.alcorcon).map((r) => `${r.departure}-${r.arrival} ${r.nromov}`);
+  assert.deepEqual(flagged, ['05:00-06:20 4128373', '05:00-06:20 4128374', '05:45-07:05 4128378']);
+  assert.equal(rows.find((r) => r.nromov === '4128377')?.alcorcon, false);
+});
+
+test('parseSchedule: en la tabla con los llenos ocultos (16/11), la fila «Completo» de las 05:00 conserva la nota', () => {
+  const rows = parseSchedule(fx('ab-horarios-vuelta-2026-11-16-llenos.html'));
+  assert.equal(rows.length, 40);
+  assert.deepEqual(rows[0], { departure: '05:00', arrival: '06:20', nromov: null, full: true, alcorcon: true });
+});
+
 test('parseSchedule incluye las salidas «Completo» (sin botón de selección)', () => {
   const rows = parseSchedule(fx('ab-horarios-vuelta-2026-11-06.html'));
-  assert.deepEqual(rows[0], { departure: '05:00', arrival: '06:20', nromov: null, full: true });
+  assert.deepEqual(rows[0], { departure: '05:00', arrival: '06:20', nromov: null, full: true, alcorcon: true });
   assert.ok(rows.some((r) => r.departure === '09:30' && r.arrival === '11:20' && !r.full && r.nromov));
 });
 

@@ -56,15 +56,29 @@ export function passesThrough(t: Trip): boolean {
   return PASS_THROUGH_LINES.includes(t.line);
 }
 
-// ¿Hay OTRO bus que salga y llegue exactamente a la misma hora? Entonces es imposible saber cuál de
-// las filas de autobusing es la suya, y no se consultan sus plazas.
-export function isAmbiguous(t: Trip, all: Trip[]): boolean {
-  return all.some((o) => o.expedition !== t.expedition && o.departure === t.departure && o.arrival === t.arrival);
+// MARCA DE ALCORCÓN: algunos buses de Talavera a Madrid «solo llegan hasta Alcorcón». Es la única nota que
+// aparece en las dos webs: samar.es la pone como aviso de parada («ESTE SERVICIO SÓLO LLEGA HASTA ALCORCÓN…»)
+// y autobusing debajo de la fila («Esta expedición solo llega hasta Alcorcón…»). Sirve para no confundir
+// dos buses que salen a la misma hora (el 05:45 normal y el 05:45 de Alcorcón). La `i` final ignora mayúsculas.
+export const ALCORCON = /s[oó]lo llega hasta alcorc[oó]n/i;
+
+export function onlyToAlcorcon(t: Pick<Trip, 'alerts'>): boolean {
+  return t.alerts.some((a) => ALCORCON.test(a));
 }
 
-// Horas de llegada de los otros buses que salen a la misma hora que `t` (las usa pickRow en autobusing.ts).
+// Otro bus que sale a la misma hora que `t` y tiene su misma marca de Alcorcón (los demás no se confunden con él).
+const sameSlot = (t: Trip, o: Trip) =>
+  o.expedition !== t.expedition && o.departure === t.departure && onlyToAlcorcon(o) === onlyToAlcorcon(t);
+
+// ¿Hay OTRO bus que salga y llegue exactamente a la misma hora (y con la misma marca)? Entonces es imposible
+// saber cuál de las filas de autobusing es la suya, y no se consultan sus plazas.
+export function isAmbiguous(t: Trip, all: Trip[]): boolean {
+  return all.some((o) => sameSlot(t, o) && o.arrival === t.arrival);
+}
+
+// Horas de llegada de los otros buses que salen a la misma hora que `t`, con su misma marca (las usa pickRow).
 export function siblingArrivals(t: Trip, all: Trip[]): string[] {
-  return all.filter((o) => o.expedition !== t.expedition && o.departure === t.departure).map((o) => o.arrival);
+  return all.filter((o) => sameSlot(t, o)).map((o) => o.arrival);
 }
 
 // Formateador de fechas en hora de Madrid. Se usa el formato 'en-CA' (Canadá) porque escribe las fechas
