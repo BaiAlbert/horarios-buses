@@ -6,7 +6,7 @@
 import { memo, useState } from 'react';
 import type { Direction, Trip } from '../lib/samar.ts';
 import type { BusSeats, SeatsResult } from '../lib/autobusing.ts';
-import { KIND_LABEL, tripKind } from '../lib/rules.ts';
+import { KIND_LABEL, buyUrl, tripKind } from '../lib/rules.ts';
 import { formatDuration, madridTime } from '../lib/calendar.ts';
 import AlertIcon from './AlertIcon.tsx';
 
@@ -59,6 +59,20 @@ function SeatsLine({ r }: { r: Extract<SeatsResult, { ok: true }> }) {
         </>
       );
   }
+}
+
+// Pista de qué fila elegir en la tabla Horarios de autobusing al comprar. Antes de consultar las plazas usa
+// las horas de samar.es; después, lo que se sabe de autobusing: su hora de llegada si es otra, o cuántas filas
+// iguales tiene si el horario lleva refuerzo.
+function buyHint(trip: Trip, seats: SeatsState): string {
+  const r = seats.status === 'done' && seats.result.ok ? seats.result : null;
+  if (r?.kind === 'several') {
+    const n = r.buses.length;
+    return `En autobusing hay ${n} filas ${trip.departure} → ${trip.arrival}; ${n === 2 ? 'las dos' : 'todas'} son este horario.`;
+  }
+  // `?.` y `??`: si no hay resultado (r es null) o no trae matchedArrival, se usa la llegada de samar.es
+  const arrival = r?.matchedArrival ?? trip.arrival;
+  return `En autobusing, elige la fila ${trip.departure} → ${arrival}. Si no aparece, este bus no se vende ahí.`;
 }
 
 // Props que recibe la tarjeta desde SearchApp: el bus, el sentido y la fecha buscados (para pedir las
@@ -154,6 +168,17 @@ export default memo(function TripCard({ trip, dir, date, hideItinerary }: Props)
         ) : (
           <p className="unavailable" title={seats.result.reason}>Plazas no disponibles <small>({seats.result.reason})</small></p>
         ))}
+      </div>
+
+      {/* Comprar: enlace a autobusing en otra pestaña. Va fuera de la zona aria-live de plazas para que los
+          lectores de pantalla no lo repitan al cambiar las plazas. La compra (pago y datos) es toda de
+          autobusing: esta web solo lleva hasta allí y dice qué fila de su tabla corresponde a este bus.
+          rel="noopener noreferrer": la otra pestaña no puede controlar esta ni sabe de dónde viene. */}
+      <div className="buy">
+        <a className="secondary press" href={buyUrl(trip, date)} target="_blank" rel="noopener noreferrer">
+          Comprar en autobusing<span className="sr"> (se abre en otra pestaña)</span>
+        </a>
+        <p className="note">{buyHint(trip, seats)}</p>
       </div>
     </article>
   );

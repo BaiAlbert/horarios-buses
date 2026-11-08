@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
+import { buyUrl } from '../../lib/rules.ts';
 import {
-  CHECKED_AT, mockSeats, mockTrips, openLoggedIn, search, tripsFixture, type SeatsBody,
+  CHECKED_AT, DAY, mockSeats, mockTrips, openLoggedIn, search, tripsFixture, type SeatsBody,
 } from './helpers.ts';
 
 const { trips } = tripsFixture();
@@ -79,7 +80,7 @@ const cases: [string, SeatsBody, (card: ReturnType<Page['getByRole']>) => Promis
     await expect(line).toHaveAttribute('title', 'Varios buses salen y llegan a la misma hora');
   }],
   ['llegada distinta en autobusing', { ok: true, kind: 'available', checkedAt: CHECKED_AT, matchedArrival: '12:34', passThrough: false }, async (card) => {
-    await expect(card.locator('.note')).toHaveText(`Aviso: en el sistema de venta este bus llega a las 12:34 (en Samar, a las ${first.arrival}). Se ha emparejado solo por la hora de salida.`);
+    await expect(card.locator('.seats .note')).toHaveText(`Aviso: en el sistema de venta este bus llega a las 12:34 (en Samar, a las ${first.arrival}). Se ha emparejado solo por la hora de salida.`);
   }],
   ['refuerzo: plazas de cada autobús por separado y en orden', {
     ok: true, kind: 'several', checkedAt: CHECKED_AT, passThrough: false,
@@ -96,7 +97,7 @@ const cases: [string, SeatsBody, (card: ReturnType<Page['getByRole']>) => Promis
     await expect(card.locator('.seats-ok')).toHaveCount(0);
   }],
   ['bus que continúa más allá del trayecto', { ok: true, kind: 'available', checkedAt: CHECKED_AT, passThrough: true }, async (card) => {
-    await expect(card.locator('.note')).toHaveText('Este bus continúa más allá de tu trayecto; las plazas podrían referirse a todo el recorrido.');
+    await expect(card.locator('.seats .note')).toHaveText('Este bus continúa más allá de tu trayecto; las plazas podrían referirse a todo el recorrido.');
   }],
 ];
 
@@ -134,3 +135,43 @@ test('plazas: 401 manda a /login', async ({ page }) => {
   await seatsButton(card).click();
   await expect(page).toHaveURL(/\/login$/);
 });
+
+const buyLink = (card: ReturnType<Page['getByRole']>) => card.getByRole('link', { name: /Comprar en autobusing/ });
+const buyHint = (card: ReturnType<Page['getByRole']>) => card.locator('.buy .note');
+
+test('comprar: un enlace por tarjeta, al paso 1 de autobusing sin hora y en otra pestaña', async ({ page }) => {
+  const card = await openFirstCard(page);
+  await expect(page.getByRole('link', { name: /Comprar en autobusing/ })).toHaveCount(await page.getByRole('article').count());
+
+  const link = buyLink(card);
+  await expect(link).toHaveAttribute('href', buyUrl(first, DAY));
+  // el fixture es de Madrid a Talavera: los códigos salen del propio bus, no están fijos
+  await expect(link).toHaveAttribute('href', /origen_codigo=0108&destino_codigo=0831/);
+  expect(await link.getAttribute('href')).not.toContain('hora_ida');
+  await expect(link).toHaveAttribute('target', '_blank');
+  await expect(link).toHaveAttribute('rel', /noopener/);
+  await expect(link).toHaveAttribute('rel', /noreferrer/);
+  await expect(link).toHaveAccessibleName(/se abre en otra pestaña/);
+  await expect(buyHint(card)).toHaveText(`En autobusing, elige la fila ${first.departure} → ${first.arrival}. Si no aparece, este bus no se vende ahí.`);
+});
+
+const hintCases: [string, SeatsBody, string][] = [
+  ['llegada distinta en autobusing', { ok: true, kind: 'available', checkedAt: CHECKED_AT, matchedArrival: '09:58', passThrough: false },
+    `En autobusing, elige la fila ${first.departure} → 09:58. Si no aparece, este bus no se vende ahí.`],
+  ['refuerzo de 2', { ok: true, kind: 'several', checkedAt: CHECKED_AT, passThrough: false, buses: [{ kind: 'full' }, { kind: 'available' }] },
+    `En autobusing hay 2 filas ${first.departure} → ${first.arrival}; las dos son este horario.`],
+  ['refuerzo de 3', { ok: true, kind: 'several', checkedAt: CHECKED_AT, passThrough: false, buses: [{ kind: 'full' }, { kind: 'full' }, { kind: 'available' }] },
+    `En autobusing hay 3 filas ${first.departure} → ${first.arrival}; todas son este horario.`],
+  ['plazas no disponibles', { ok: false, reason: 'No encontrado en autobusing', passThrough: false },
+    `En autobusing, elige la fila ${first.departure} → ${first.arrival}. Si no aparece, este bus no se vende ahí.`],
+];
+
+for (const [nombre, body, pista] of hintCases) {
+  test(`comprar: la pista se ajusta tras consultar las plazas (${nombre})`, async ({ page }) => {
+    const card = await openFirstCard(page);
+    await mockSeats(page, body);
+    await seatsButton(card).click();
+    await expect(buyHint(card)).toHaveText(pista);
+    await expect(buyLink(card)).toBeVisible(); // el enlace sigue ahí, haya o no plazas
+  });
+}

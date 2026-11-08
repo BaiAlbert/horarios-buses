@@ -44,6 +44,7 @@ test('controles táctiles: miden lo que pide el diseño (44 px; 34 px en pantall
     ['chip', page.locator('.chip').first()],
     ['interruptor', page.locator('.switch').locator('visible=true')],
     ['Ver plazas', page.getByRole('button', { name: 'Ver plazas libres' }).first()],
+    ['Comprar', page.getByRole('link', { name: /Comprar en autobusing/ }).first()],
     ['Avisos de Samar', page.getByRole('button', { name: /Avisos de Samar/ })],
   ] as const) {
     const box = await loc.boundingBox();

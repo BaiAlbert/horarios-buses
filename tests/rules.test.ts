@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { parseResults } from '../lib/samar.ts';
 import {
   isDirect, stopsAtSantaOlalla, tripKind, KIND_LABEL, isAmbiguous, passesThrough,
-  todayMadrid, isAllowedDate, parseDirection, searchDate,
+  todayMadrid, isAllowedDate, parseDirection, searchDate, buyUrl,
 } from '../lib/rules.ts';
 
 const { trips } = parseResults(readFileSync(new URL('./fixtures/samar-ida-2026-11-03.html', import.meta.url), 'utf8'));
@@ -62,4 +62,10 @@ test('parseDirection', () => {
   assert.equal(parseDirection('vuelta'), 'vuelta');
   assert.equal(parseDirection('x'), null);
   assert.equal(parseDirection(null), null);
+});
+
+test('buyUrl: enlace al paso 1 de autobusing con trayecto y fecha, sin hora (así autobusing no elige el bus)', () => {
+  const u = new URL(buyUrl({ originCode: '0831', destinationCode: '0108' }, '2026-11-09'));
+  assert.equal(`${u.origin}${u.pathname}`, 'https://regular.autobusing.es/venta/inicio_info');
+  assert.deepEqual(Object.fromEntries(u.searchParams), { empresa: 'samar', origen_codigo: '0831', destino_codigo: '0108', fecha_ida: '2026-11-09' });
 });

@@ -2,6 +2,19 @@
 // ("Puras" = solo calculan un resultado a partir de sus datos; no van a internet ni cambian nada fuera.)
 import type { Direction, Trip } from './samar.ts';
 
+// Motor de venta de billetes de Samar. Aquí (y no en autobusing.ts) para que el navegador pueda usarla sin
+// cargar el código que consulta las plazas.
+export const AUTOBUSING_URL = 'https://regular.autobusing.es';
+
+// Enlace para comprar el billete: el paso 1 de autobusing con el trayecto y la fecha, y SIN la hora.
+// Con la hora (como hace samar.es), autobusing elige él el bus de esa hora y salta a las plazas, aunque a
+// esa hora salgan varios (directo y de ruta). Sin ella, tras el paso 1 enseña la tabla Horarios y el
+// usuario elige la fila exacta (salida y llegada). `Pick<Trip, ...>` = solo esos campos de Trip.
+export function buyUrl(trip: Pick<Trip, 'originCode' | 'destinationCode'>, date: string): string {
+  const qs = new URLSearchParams({ empresa: 'samar', origen_codigo: trip.originCode, destino_codigo: trip.destinationCode, fecha_ida: date });
+  return `${AUTOBUSING_URL}/venta/inicio_info?${qs}`;
+}
+
 // Líneas que siguen más allá de Talavera/Madrid: en ellas las plazas que da autobusing podrían ser
 // las de todo el recorrido y no solo las de nuestro tramo. La tarjeta muestra un aviso para estos buses.
 // Quitar líneas de aquí para fiarse de que autobusing da las plazas solo del tramo buscado.

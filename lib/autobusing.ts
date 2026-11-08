@@ -9,6 +9,7 @@
 // El problema difícil: samar.es y autobusing son sistemas distintos y no comparten un identificador del bus.
 // Hay que encontrar "el mismo bus" en autobusing comparando horas de salida y llegada (ver pickRow más abajo).
 import { TIMEOUT_MS, USER_AGENT, type Trip } from './samar.ts';
+import { AUTOBUSING_URL as BASE } from './rules.ts';
 
 // Resultado de consultar las plazas de un bus. Es una "unión discriminada": un tipo que puede tener
 // varias formas, y el campo `ok` / `kind` dice cuál es. El código que lo usa mira esos campos para saber qué hay.
@@ -37,7 +38,6 @@ export type FetchSeatsOptions = {
   budgetMs?: number;
 };
 
-const BASE = 'https://regular.autobusing.es';
 // Como mucho se consultan 3 filas idénticas (refuerzo); con más, algo raro pasa y no se lanzan más sesiones.
 const MAX_ROWS = 3;
 export const SEATS_BUDGET_MS = 18_000; // + hasta 10 s de samar.es en la ruta, dentro de los 30 s de maxDuration
