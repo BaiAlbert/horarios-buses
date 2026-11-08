@@ -9,7 +9,7 @@
 // El problema difícil: samar.es y autobusing son sistemas distintos y no comparten un identificador del bus.
 // Hay que encontrar "el mismo bus" en autobusing comparando horas de salida y llegada (ver pickRow más abajo).
 import { TIMEOUT_MS, USER_AGENT, type Trip } from './samar.ts';
-import { ALCORCON, AUTOBUSING_URL as BASE } from './rules.ts';
+import { ALCORCON, AUTOBUSING_URL as BASE, onlyToAlcorcon } from './rules.ts';
 
 // Resultado de consultar las plazas de un bus. Es una "unión discriminada": un tipo que puede tener
 // varias formas, y el campo `ok` / `kind` dice cuál es. El código que lo usa mira esos campos para saber qué hay.
@@ -22,10 +22,13 @@ export type BusSeats =
   | { kind: 'full' } // autobusing marca la salida como «Completo»
   | { kind: 'available' }; // sin mapa de asientos, pero no está completo
 type Failure = { ok: false; reason: string }; // no se pudo averiguar; `reason` explica por qué (se muestra al usuario)
+// Un autobús de un refuerzo: sus plazas y la hora de llegada que da autobusing para su fila. En un refuerzo por
+// descarte las filas pueden llegar a horas distintas (05:15 → 07:10 y 07:15), y la tarjeta lo enseña.
+export type SeveralBus = BusSeats & { arrival: string };
 // `Found & BusSeats` = cada uno de los tres casos de BusSeats, con los campos de Found añadidos.
 export type SeatsResult =
   | (Found & BusSeats) // lo normal: un autobús por horario
-  | (Found & { kind: 'several'; buses: BusSeats[] }) // refuerzo: un autobús por fila, en el orden de la tabla
+  | (Found & { kind: 'several'; buses: SeveralBus[] }) // refuerzo: un autobús por fila, en el orden de la tabla
   | Failure;
 
 // Opciones de fetchSeats. Todas son opcionales (`?`): los tests las usan para simular internet y el reloj.
@@ -81,25 +84,25 @@ export function parseSeatMap(html: string): { when: string | null; free: number;
 }
 
 /**
- * Elige la fila de autobusing de un bus de samar.es. Primero salida+llegada exactas; si no, por descarte:
- * quitando las filas que ya corresponden exactamente a otros buses de samar.es a esa hora, tiene que quedar
- * una sola fila y ningún otro bus de samar.es sin pareja. Ante la duda, null.
+ * Elige la fila (o filas) de autobusing de un bus de samar.es. Solo se miran las filas con su misma salida y su
+ * misma marca de Alcorcón (ver ALCORCON en rules.ts): así el 05:45 normal nunca recibe la fila del 05:45 que
+ * solo llega hasta Alcorcón, aunque las dos digan 05:45 → 07:05. Entre esas filas:
  *
- * Ejemplo: samar.es tiene dos buses a las 08:00 (llegan 09:15 y 10:00). autobusing tiene dos filas a las 08:00
- * (llegan 09:15 y 09:58). Para el bus de las 10:00 no hay coincidencia exacta; la fila de 09:15 ya es del otro
- * bus, así que solo queda la de 09:58 → se elige esa, con exact: false (y se avisa al usuario de la diferencia).
- * Es preferible no dar plazas que dar las de otro bus.
- *
- * REFUERZO: a veces autobusing tiene varias filas idénticas (misma salida y llegada) para un solo bus de
- * samar.es, porque ese horario lleva más de un autobús (el 09/11, 05:15→06:35: dos filas, 65 y 60 asientos).
- * Entonces se devuelven todas, en el orden de la tabla, y fetchSeats consulta las plazas de cada una.
+ * 1. Salida y llegada exactas → esas filas (exact: true). Si hay varias es un REFUERZO: ese horario lleva más de
+ *    un autobús (el 09/11, 05:15→06:35: dos filas, 65 y 60 asientos), y fetchSeats consulta cada una.
+ * 2. Si no, POR DESCARTE: se quitan las filas que ya corresponden exactamente a otros buses de samar.es a esa
+ *    hora. Si después ningún otro bus de samar.es se ha quedado sin pareja, todas las filas que sobran son de
+ *    este bus (exact: false), aunque lleguen a horas distintas. Ejemplo (16/11): samar.es tiene a las 05:15 un
+ *    directo → 06:35 y uno de ruta → 07:05; autobusing tiene 06:35, 06:35, 07:10 y 07:15. Las dos 06:35 son del
+ *    directo, así que el de ruta recibe 07:10 y 07:15 (dos autobuses), y la tarjeta avisa de las horas.
+ * 3. Ante la duda, null: es preferible no dar plazas que dar las de otro bus.
  */
 export function pickRow(
-  trip: { departure: string; arrival: string },
-  siblingArrivals: string[], // horas de llegada de los OTROS buses de samar.es que salen a la misma hora
+  trip: Pick<Trip, 'departure' | 'arrival' | 'alerts'>,
+  siblingArrivals: string[], // horas de llegada de los OTROS buses de samar.es que salen a la misma hora (y misma marca)
   rows: ScheduleRow[],
 ): { rows: ScheduleRow[]; exact: boolean } | null {
-  const sameDeparture = rows.filter((r) => r.departure === trip.departure);
+  const sameDeparture = sameSlot(trip, rows);
   const exact = sameDeparture.filter((r) => r.arrival === trip.arrival);
   // caso normal: una única coincidencia exacta (o varias, si es un refuerzo)
   if (exact.length > 0) return { rows: exact, exact: true };
@@ -108,8 +111,12 @@ export function pickRow(
   // ...y otros buses de samar.es a esa hora que tampoco encontraron su fila (si los hay, la duda es real).
   const unmatchedSiblings = siblingArrivals.filter((a) => !sameDeparture.some((r) => r.arrival === a));
   // `cond ? a : b` es un "if" en una línea: si cond es verdad da a, si no, b.
-  return free.length === 1 && unmatchedSiblings.length === 0 ? { rows: [free[0]], exact: false } : null;
+  return free.length > 0 && unmatchedSiblings.length === 0 ? { rows: free, exact: false } : null;
 }
+
+// Filas de autobusing con la misma salida y la misma marca de Alcorcón que el bus.
+const sameSlot = (trip: Pick<Trip, 'departure' | 'alerts'>, rows: ScheduleRow[]) =>
+  rows.filter((r) => r.departure === trip.departure && r.alcorcon === onlyToAlcorcon(trip));
 
 const toSpanish = (date: string) => date.split('-').reverse().join('/'); // 2026-11-03 → 03/11/2026
 
@@ -216,8 +223,9 @@ export async function fetchSeats(
     // Filas a esa hora que no son de otro bus de samar.es: si no queda ninguna, el bus no está en autobusing;
     // si queda alguna, está pero no se sabe cuál es (y no se arriesga a dar las plazas de otro).
     // (Sin la lista de hermanos, siblingArrivals = null, no se puede descartar nada: «no encontrado».)
-    const candidates = rows.filter((r) => r.departure === trip.departure && !siblingArrivals?.includes(r.arrival));
-    const reason = siblingArrivals && candidates.length > 0 ? 'Varias filas posibles en autobusing' : 'No encontrado en autobusing';
+    // Que no aparezca no prueba que no se venda online: autobusing esconde los autobuses llenos.
+    const candidates = sameSlot(trip, rows).filter((r) => !siblingArrivals?.includes(r.arrival));
+    const reason = siblingArrivals && candidates.length > 0 ? 'Varias filas posibles en autobusing' : 'No aparece en la venta online';
     return { ok: false, reason };
   }
   if (picked.rows.length > MAX_ROWS) return { ok: false, reason: 'Demasiadas filas iguales en autobusing' };
@@ -234,15 +242,17 @@ export async function fetchSeats(
   // REFUERZO: varias filas idénticas. Cada fila que hay que seleccionar va en su PROPIA sesión, porque la
   // página de plazas no dice qué fila se eligió: si una segunda selección en la misma sesión fallara sin
   // avisar, se darían las plazas del primer autobús dos veces. Las sesiones van a la vez (Promise.all).
-  const buses = await Promise.all(picked.rows.map(async (row, i) => {
-    if (i === 0 || row.full || !row.nromov) return readRow(session, row, trip, date); // sin selección o la primera
+  const buses = await Promise.all(picked.rows.map(async (row, i): Promise<SeveralBus | Failure> => {
+    // cada autobús lleva la llegada de su fila (en un refuerzo por descarte pueden ser distintas)
+    const withArrival = (r: BusSeats | Failure) => (failed(r) ? r : { ...r, arrival: row.arrival });
+    if (i === 0 || row.full || !row.nromov) return withArrival(await readRow(session, row, trip, date)); // sin selección o la primera
     const own = openSession(fetchImpl, budget);
-    if (!(await readSchedule(own, trip, date))) return { ok: false, reason: 'autobusing no reconoce el trayecto' } as const;
-    return readRow(own, row, trip, date);
+    if (!(await readSchedule(own, trip, date))) return { ok: false, reason: 'autobusing no reconoce el trayecto' };
+    return withArrival(await readRow(own, row, trip, date));
   }));
   // Si alguna fila falla, falla todo: mejor «no disponible» que un resultado a medias.
-  const failure = buses.find(failed);
-  if (failure) return failure;
+  const failure = buses.find((b) => 'reason' in b);
+  if (failure) return failure as Failure;
   // (`as`: aquí ya no hay ningún Failure, pero TypeScript no lo deduce del `find` de arriba)
-  return { ok: true, kind: 'several', buses: buses as BusSeats[], checkedAt: now().toISOString() };
+  return { ok: true, kind: 'several', buses: buses as SeveralBus[], checkedAt: now().toISOString() };
 }
