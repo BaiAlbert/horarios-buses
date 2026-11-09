@@ -84,15 +84,19 @@ function rowMark(trip: Trip, twin: boolean, plural: boolean): string {
 
 // Pista de qué fila elegir en la tabla Horarios de autobusing al comprar. Antes de consultar las plazas usa las
 // horas de samar.es (y la nota de Alcorcón); después, lo que se sabe de autobusing: su hora de llegada, cuántas
-// filas tiene el refuerzo, o que ahora mismo no aparece.
-function buyHint(trip: Trip, seats: SeatsState, twin: boolean): string {
+// filas tiene el refuerzo, o que ahora mismo no aparece. `shared909`: este bus tiene las mismas horas que un 909
+// directo, y la fila con esas horas es la del 909 (REGLA DEL 909, ver shares909Row en rules.ts).
+function buyHint(trip: Trip, seats: SeatsState, twin: boolean, shared909: boolean): string {
   const dep = trip.departure;
   // Un bus de Alcorcón se reconoce por la nota, porque autobusing le pone otra hora de llegada (la teórica).
   const before = onlyToAlcorcon(trip)
     ? `En autobusing, elige la fila de las ${dep} que dice ${ALC} (allí puede poner otra hora de llegada).`
-    : `En autobusing, busca la fila de las ${dep} que llega a las ${trip.arrival}${rowMark(trip, twin, false)}.`;
+    : shared909
+      ? `En autobusing, la fila de las ${dep} que llega a las ${trip.arrival} es la del directo 909; la de este bus llega a otra hora.`
+      : `En autobusing, busca la fila de las ${dep} que llega a las ${trip.arrival}${rowMark(trip, twin, false)}.`;
   if (seats.status === 'idle' || seats.status === 'loading') {
-    return onlyToAlcorcon(trip) ? before : `${before} Si no está, «Ver plazas libres» te dice cuál es.`;
+    if (onlyToAlcorcon(trip)) return before;
+    return shared909 ? `${before} «Ver plazas libres» te dice cuál es.` : `${before} Si no está, «Ver plazas libres» te dice cuál es.`;
   }
   if (seats.status === 'error') return before;
   const r = seats.result;
@@ -117,12 +121,13 @@ function buyHint(trip: Trip, seats: SeatsState, twin: boolean): string {
 }
 
 // Props que recibe la tarjeta desde SearchApp: el bus, el sentido y la fecha buscados (para pedir las
-// plazas), si hay que ocultar las paradas y si a su misma hora sale otro bus de Alcorcón (alcorconTwin).
-type Props = { trip: Trip; dir: Direction; date: string; hideItinerary: boolean; alcorconTwin: boolean };
+// plazas), si hay que ocultar las paradas, si a su misma hora sale otro bus de Alcorcón (alcorconTwin) y si tiene
+// las mismas horas que un 909 directo (shares909Row).
+type Props = { trip: Trip; dir: Direction; date: string; hideItinerary: boolean; alcorconTwin: boolean; shares909Row: boolean };
 
 // memo: elegir otra fecha o trayecto en el buscador no vuelve a pintar las tarjetas ya en pantalla
 // (memo hace que el componente solo se repinte si cambian sus props.)
-export default memo(function TripCard({ trip, dir, date, hideItinerary, alcorconTwin }: Props) {
+export default memo(function TripCard({ trip, dir, date, hideItinerary, alcorconTwin, shares909Row }: Props) {
   // Cada tarjeta tiene su propio estado de plazas, independiente de las demás.
   const [seats, setSeats] = useState<SeatsState>({ status: 'idle' });
   const kind = tripKind(trip);
@@ -231,7 +236,7 @@ export default memo(function TripCard({ trip, dir, date, hideItinerary, alcorcon
           <a className="secondary press" href={buyUrl(trip, date)} target="_blank" rel="noopener noreferrer">
             Comprar en autobusing<span className="sr"> (se abre en otra pestaña)</span>
           </a>
-          <p className="note">{buyHint(trip, seats, alcorconTwin)}</p>
+          <p className="note">{buyHint(trip, seats, alcorconTwin, shares909Row)}</p>
         </div>
       </>)}
     </article>

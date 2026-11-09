@@ -98,6 +98,19 @@ Si el 05:45 normal se llena, autobusing esconde su fila. Ese bus pasa a «No apa
 - Si a una hora sobran filas pero ya no queda ningún bus de samar.es sin pareja, esas filas se ignoran.
 - En un refuerzo con horas exactas no se muestran las llegadas; solo en el refuerzo por descarte.
 
+## Añadido: regla del 909 directo (09/11, tras revisar a mano el sábado 28/11)
+
+Experimental y desactivable: `DIRECT_909_RULE` en `lib/rules.ts`. Con `false`, todo funciona como antes.
+
+- **Hecho:** autobusing pone a los 909 directos (sin paradas) su llegada teórica, siempre salida + 1:20.
+- **Lo que se observó:** los sábados (14/11, 21/11, 28/11 y 05/12), samar.es tiene a las 09:00 un 909 directo y un 905, los dos → 10:20, y autobusing tiene 09:00 → 10:20 y 09:00 → 10:50. Entre semana (27/11, 30/11) no hay 905 a las 09:00, y autobusing solo tiene la fila 10:20. Los sábados también sobran filas a las 05:15 (→ 07:15) y a las 10:30 (→ 12:25).
+- **Regla:** a una hora en la que sale un 909 directo, las filas que llegan a salida + 1:20 son suyas y no de los demás buses. Por tanto:
+  1. un 909 directo y otro bus con sus mismas horas, si llegan a salida + 1:20, dejan de ser ambiguos. El 909 recibe esa fila y el otro bus va por descarte (el 905 recibe la 10:50);
+  2. el único bus de una hora que no es 909 directo recibe también las filas que no son de ningún otro bus de samar.es, junto a las suyas exactas (el 910 de las 05:15 recibe 07:05, 07:15 y 07:05);
+  3. la pista de compra del otro bus no lo manda a la fila del 909: «En autobusing, la fila de las 09:00 que llega a las 10:20 es la del directo 909; la de este bus llega a otra hora.».
+- **Domingo 29/11:** a las 19:00 salen el 904 (→ 20:30), el 909 directo y el 905 (los dos → 20:20). autobusing solo tiene la fila 20:20, que recibe el 909; el 904 y el 905 dan «No aparece en la venta online».
+- **[sin verificar]:** que la fila 10:50 sea la del 905 se deduce porque las dos cosas aparecen y faltan los mismos días; autobusing no dice la línea. Tampoco se sabe si los autobuses sobrantes hacen el mismo recorrido; la tarjeta avisa, como en el resto de refuerzos por descarte.
+
 ## Tests mínimos
 
 Con la tabla completa de autobusing y samar.es del 16/11, cada caso de la tabla «Cómo queda cada caso» recibe lo que dice ahí. Como mínimo:

@@ -237,3 +237,55 @@ test('bus sin el dato onlineSale (respuesta antigua): se ofrecen plazas y compra
   await expect(page.getByText('Este bus no se vende online.')).toHaveCount(0);
   await expect(seatsButton(page.getByRole('article').first())).toBeVisible();
 });
+
+// REGLA DEL 909 (DIRECT_909_RULE en lib/rules.ts), sábado 28/11 de Talavera a Madrid. A las 09:00 salen el 909 directo
+// y el 905, los dos → 10:20 en samar.es; en autobusing, la fila 10:20 es la del 909 y la del 905 llega a las 10:50.
+async function openNov28(page: Page) {
+  await mockTrips(page, tripsFixture('samar-vuelta-2026-11-28.html'));
+  await openLoggedIn(page);
+  await search(page);
+}
+const lineCard = (page: Page, times: RegExp, line: string) => cardAt(page, times).filter({ hasText: `Línea ${line}` });
+
+test('comprar, regla del 909: a las 09:00 del sábado la pista no manda al 905 a la fila del 909', async ({ page }) => {
+  await openNov28(page);
+  const c909 = lineCard(page, /09:00.*10:20/, '909');
+  const c905 = lineCard(page, /09:00.*10:20/, '905');
+  await expect(buyHint(c909)).toHaveText('En autobusing, busca la fila de las 09:00 que llega a las 10:20. Si no está, «Ver plazas libres» te dice cuál es.');
+  await expect(buyHint(c905)).toHaveText('En autobusing, la fila de las 09:00 que llega a las 10:20 es la del directo 909; la de este bus llega a otra hora. «Ver plazas libres» te dice cuál es.');
+
+  await mockSeats(page, { ok: true, kind: 'count', free: 31, occupied: 19, total: 50, checkedAt: CHECKED_AT, matchedArrival: '10:50', passThrough: true });
+  await seatsButton(c905).click();
+  await expect(c905.locator('.seats')).toContainText('31 libres');
+  await expect(c905.locator('.seats .note').first()).toHaveText('Aviso: en el sistema de venta este bus llega a las 10:50 (en Samar, a las 10:20). Se ha emparejado solo por la hora de salida.');
+  await expect(buyHint(c905)).toHaveText('En autobusing, elige la fila 09:00 → 10:50.');
+});
+
+test('comprar, regla del 909: si falla la consulta, la pista del 905 sigue sin mandarlo a la fila del 909', async ({ page }) => {
+  await openNov28(page);
+  const c905 = lineCard(page, /09:00.*10:20/, '905');
+  await page.route('**/api/seats?*', (route) => route.fulfill({ status: 502, json: { error: 'x' } }));
+  await seatsButton(c905).click();
+  await expect(buyHint(c905)).toHaveText('En autobusing, la fila de las 09:00 que llega a las 10:20 es la del directo 909; la de este bus llega a otra hora.');
+});
+
+// A las 05:15 del sábado el 910 tiene dos filas exactas (07:05) y una sobrante (07:15), que la regla le da también.
+test('plazas, regla del 909: refuerzo con filas exactas y una sobrante → llegada de cada autobús, aviso y pista', async ({ page }) => {
+  await openNov28(page);
+  const card = lineCard(page, /05:15.*07:05/, '910');
+  await mockSeats(page, {
+    ok: true, kind: 'several', checkedAt: CHECKED_AT, passThrough: false, buses: [
+      { kind: 'count', free: 3, occupied: 52, total: 55, arrival: '07:05' },
+      { kind: 'full', arrival: '07:15' },
+      { kind: 'count', free: 20, occupied: 35, total: 55, arrival: '07:05' },
+    ],
+  });
+  await seatsButton(card).click();
+  await expect(card.locator('.seats ol.buses li')).toHaveText([
+    '1.º (llega 07:05 según autobusing): 3 libres de 55',
+    '2.º (llega 07:15 según autobusing): completo',
+    '3.º (llega 07:05 según autobusing): 20 libres de 55',
+  ]);
+  await expect(card.locator('.seats .note')).toHaveText('Aviso: en el sistema de venta estos autobuses llegan a las 07:05 y 07:15 (en Samar, a las 07:05). Se han emparejado por descarte: puede que no hagan exactamente el mismo recorrido.');
+  await expect(buyHint(card)).toHaveText('En autobusing, elige una de las filas de las 05:15 que llegan a las 07:05 y 07:15.');
+});

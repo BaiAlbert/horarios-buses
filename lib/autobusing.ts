@@ -9,7 +9,7 @@
 // El problema difícil: samar.es y autobusing son sistemas distintos y no comparten un identificador del bus.
 // Hay que encontrar "el mismo bus" en autobusing comparando horas de salida y llegada (ver pickRow más abajo).
 import { TIMEOUT_MS, USER_AGENT, type Trip } from './samar.ts';
-import { ALCORCON, AUTOBUSING_URL as BASE, onlyToAlcorcon } from './rules.ts';
+import { ALCORCON, AUTOBUSING_URL as BASE, onlyToAlcorcon, type Rule909 } from './rules.ts';
 
 // Resultado de consultar las plazas de un bus. Es una "unión discriminada": un tipo que puede tener
 // varias formas, y el campo `ok` / `kind` dice cuál es. El código que lo usa mira esos campos para saber qué hay.
@@ -39,6 +39,8 @@ export type FetchSeatsOptions = {
   siblingArrivals?: string[] | null;
   // ¿sale a la misma hora otro bus de samar.es que solo llega hasta Alcorcón? (alcorconTwin en rules.ts)
   alcorconTwin?: boolean;
+  // REGLA DEL 909 (rule909 en rules.ts): qué filas no son de este bus y si se queda las sobrantes; sin ella, como antes
+  rule909?: Rule909;
   // tiempo máximo de todo el recorrido (hasta 5 peticiones): tiene que quedar por debajo del maxDuration de la ruta
   budgetMs?: number;
 };
@@ -98,20 +100,29 @@ export function parseSeatMap(html: string): { when: string | null; free: number;
  *    directo → 06:35 y uno de ruta → 07:05; autobusing tiene 06:35, 06:35, 07:10 y 07:15. Las dos 06:35 son del
  *    directo, así que el de ruta recibe 07:10 y 07:15 (dos autobuses), y la tarjeta avisa de las horas.
  * 3. Ante la duda, null: es preferible no dar plazas que dar las de otro bus.
+ * REGLA DEL 909 (`rule`, ver rule909 en rules.ts): si a esa hora sale un 909 directo, sus filas (salida + 1:20) no
+ * son de este bus; y si este es el único bus de su hora que no es 909 directo, también recibe las filas sobrantes.
  */
 export function pickRow(
   trip: Pick<Trip, 'departure' | 'arrival' | 'alerts'>,
   siblingArrivals: string[], // horas de llegada de los OTROS buses de samar.es que salen a la misma hora (y misma marca)
   rows: ScheduleRow[],
+  rule?: Rule909,
 ): { rows: ScheduleRow[]; exact: boolean } | null {
-  const sameDeparture = sameSlot(trip, rows);
+  const slot = sameSlot(trip, rows);
+  const sameDeparture = slot.filter((r) => !(rule?.not909Rows && r.arrival === rule.theoretical));
   const exact = sameDeparture.filter((r) => r.arrival === trip.arrival);
-  // caso normal: una única coincidencia exacta (o varias, si es un refuerzo)
-  if (exact.length > 0) return { rows: exact, exact: true };
   // Filas a esa hora que no son de ningún otro bus de samar.es...
   const free = sameDeparture.filter((r) => !siblingArrivals.includes(r.arrival));
+  if (exact.length > 0) {
+    // REGLA DEL 909: las sobrantes, junto a las exactas y en el orden de la tabla (un refuerzo por descarte)
+    const extra = rule?.leftovers ? free.filter((r) => r.arrival !== trip.arrival) : [];
+    if (extra.length > 0) return { rows: sameDeparture.filter((r) => exact.includes(r) || extra.includes(r)), exact: false };
+    // caso normal: una única coincidencia exacta (o varias, si es un refuerzo)
+    return { rows: exact, exact: true };
+  }
   // ...y otros buses de samar.es a esa hora que tampoco encontraron su fila (si los hay, la duda es real).
-  const unmatchedSiblings = siblingArrivals.filter((a) => !sameDeparture.some((r) => r.arrival === a));
+  const unmatchedSiblings = siblingArrivals.filter((a) => !slot.some((r) => r.arrival === a));
   // `cond ? a : b` es un "if" en una línea: si cond es verdad da a, si no, b.
   return free.length > 0 && unmatchedSiblings.length === 0 ? { rows: free, exact: false } : null;
 }
@@ -210,7 +221,7 @@ const failed = (r: BusSeats | Failure): r is Failure => 'reason' in r;
 export async function fetchSeats(
   trip: Trip,
   date: string,
-  { fetchImpl = fetch, now = () => new Date(), siblingArrivals = null, alcorconTwin = false, budgetMs = SEATS_BUDGET_MS }: FetchSeatsOptions = {},
+  { fetchImpl = fetch, now = () => new Date(), siblingArrivals = null, alcorconTwin = false, rule909, budgetMs = SEATS_BUDGET_MS }: FetchSeatsOptions = {},
 ): Promise<SeatsResult> {
   // Un único "cronómetro" para todo el recorrido (todas las sesiones): si se agota, se cancela lo pendiente.
   const budget = AbortSignal.timeout(budgetMs);
@@ -225,7 +236,7 @@ export async function fetchSeats(
   }
 
   // Encontrar nuestro bus en la tabla.
-  const picked = pickRow(trip, siblingArrivals ?? [], rows);
+  const picked = pickRow(trip, siblingArrivals ?? [], rows, rule909);
   // Sin la lista de hermanos (siblingArrivals) solo nos fiamos de una coincidencia exacta.
   if (!picked || (!picked.exact && !siblingArrivals)) {
     // Filas a esa hora que no son de otro bus de samar.es: si no queda ninguna, el bus no está en autobusing;
@@ -235,7 +246,9 @@ export async function fetchSeats(
     // Una llegada repetida en los hermanos (901 y 902 de las 11:15, los dos → 13:10) no hace suya la fila: esos
     // buses son ambiguos entre sí, y la fila podría ser de este (903 → 13:15). Entonces no se sabe, no «no aparece».
     const owned = siblingArrivals?.filter((a, _, all) => all.indexOf(a) === all.lastIndexOf(a));
-    const candidates = sameSlot(trip, rows).filter((r) => !owned?.includes(r.arrival));
+    // (REGLA DEL 909: las filas del 909 directo, salida + 1:20, tampoco pueden ser de este bus.)
+    const candidates = sameSlot(trip, rows)
+      .filter((r) => !owned?.includes(r.arrival) && !(rule909?.not909Rows && r.arrival === rule909.theoretical));
     const reason = siblingArrivals && candidates.length > 0 ? 'Varias filas posibles en autobusing' : 'No aparece en la venta online';
     return { ok: false, reason };
   }

@@ -5,6 +5,7 @@
 import { unstable_cache } from 'next/cache';
 import { SCHEMA_VERSION, fetchTrips, type Direction, type Trip } from './samar.ts';
 import { fetchSeats } from './autobusing.ts';
+import type { SeatsContext } from './rules.ts';
 
 // TTL ("time to live") = cuántos segundos vale un dato guardado.
 export const TRIPS_TTL_S = 3600;
@@ -26,13 +27,13 @@ const tripsCached = unstable_cache(
 );
 
 const seatsCached = unstable_cache(
-  (trip: Trip, date: string, siblings: string[], alcorconTwin: boolean, _bucket: number) =>
-    fetchSeats(trip, date, { siblingArrivals: siblings, alcorconTwin }),
+  (trip: Trip, date: string, context: SeatsContext, _bucket: number) => fetchSeats(trip, date, context),
   ['seats', `v${SCHEMA_VERSION}`],
   { revalidate: SEATS_TTL_S },
 );
 
 // Lo que usa el resto del código: horarios de un sentido y día, y plazas de un bus.
 export const getTrips = (dir: Direction, date: string) => tripsCached(dir, date, bucket(TRIPS_TTL_S));
-export const getSeats = (trip: Trip, date: string, siblings: string[], alcorconTwin: boolean) =>
-  seatsCached(trip, date, siblings, alcorconTwin, bucket(SEATS_TTL_S));
+// `context`: lo que se sabe de los demás buses de ese día (seatsContext en rules.ts).
+export const getSeats = (trip: Trip, date: string, context: SeatsContext) =>
+  seatsCached(trip, date, context, bucket(SEATS_TTL_S));

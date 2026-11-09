@@ -92,6 +92,11 @@ Las plazas solo existen en el motor de venta, así que se recorre su flujo con u
 - Distingue entre plazas con cifra, «Completo» y «Quedan plazas» (buses sin elección de asiento que no están completos).
 - **Refuerzos.** Si un horario lleva varios autobuses (varias filas idénticas en autobusing), enseña las plazas de cada uno por separado. Cada fila se consulta con su propia sesión, porque la página de plazas no dice qué fila se eligió.
 - **Refuerzos por descarte.** Si a una hora sobran filas que no coinciden con ningún bus de samar.es y solo queda un bus sin pareja, se le asignan todas (hasta 3), aunque lleguen a otras horas (05:15 → 07:05 en samar.es, 07:10 y 07:15 en autobusing). La tarjeta dice la llegada de cada uno y avisa de que puede que no hagan el mismo recorrido.
+- **Regla del 909 directo** (experimental). autobusing pone a los 909 directos la llegada salida + 1:20, así que esa fila es del 909 y las demás de esa hora no. Con ella:
+  - el 909 y el 905 de las 09:00 de los sábados, que en samar.es llegan los dos a las 10:20, ya no son «no disponible»: el 909 recibe la fila 10:20 y el 905 la 10:50;
+  - las filas que sobran a una hora (07:15 y 12:25 de los sábados) van al único bus de esa hora que no es 909 directo, como un autobús más de su refuerzo.
+
+  Para quitarla, `DIRECT_909_RULE = false` en `lib/rules.ts`: todo vuelve a funcionar como antes (hay un test que lo comprueba en todos los fixtures).
 
 ### Comprar
 

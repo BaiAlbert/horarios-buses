@@ -5,6 +5,7 @@ import { parseResults } from '../lib/samar.ts';
 import {
   isDirect, stopsAtSantaOlalla, tripKind, KIND_LABEL, isAmbiguous, passesThrough,
   todayMadrid, isAllowedDate, parseDirection, searchDate, buyUrl, onlyToAlcorcon, siblingArrivals, alcorconTwin,
+  rule909, shares909Row, seatsContext,
 } from '../lib/rules.ts';
 
 const { trips } = parseResults(readFileSync(new URL('./fixtures/samar-ida-2026-11-03.html', import.meta.url), 'utf8'));
@@ -97,4 +98,51 @@ test('alcorconTwin: el bus normal que sale a la misma hora que uno de Alcorcón'
   assert.equal(alcorconTwin(on16('05:45', '07:05'), nov16), true);
   assert.equal(alcorconTwin(on16('05:45', '06:50'), nov16), false); // él es el de Alcorcón
   assert.equal(alcorconTwin(on16('06:00', '07:20'), nov16), false);
+});
+
+// REGLA DEL 909 DIRECTO (DIRECT_909_RULE): autobusing pone a los 909 directos la llegada teórica, salida + 1:20.
+// Sábado 28/11: a las 09:00 salen el 909 directo y el 905, los dos → 10:20 en samar.es; en autobusing, 10:20 y 10:50.
+// Domingo 29/11: a las 19:00 salen el 904 (→ 20:30), el 909 directo y el 905 (los dos → 20:20); en autobusing, solo 20:20.
+const vuelta = (d: string) => parseResults(readFileSync(new URL(`./fixtures/samar-vuelta-2026-11-${d}.html`, import.meta.url), 'utf8')).trips;
+const nov28 = vuelta('28');
+const nov29 = vuelta('29');
+const line = (all: typeof nov28, dep: string, l: string) => all.find((x) => x.departure === dep && x.line === l)!;
+
+test('REGLA DEL 909: el 909 directo y otro bus con sus mismas horas (salida + 1:20) ya no son ambiguos; apagada, sí', () => {
+  for (const l of ['909', '905']) {
+    assert.equal(isAmbiguous(line(nov28, '09:00', l), nov28), false);
+    assert.equal(isAmbiguous(line(nov28, '09:00', l), nov28, false), true);
+  }
+  // sin 909 directo entre ellos, siguen ambiguos: 909 de ruta y 910 (07:00 → 09:00 del 16/11), 901 y 902 (11:15 del 16/11)
+  assert.ok(nov16.filter((x) => x.departure === '07:00' && x.arrival === '09:00').every((x) => isAmbiguous(x, nov16)));
+  assert.ok(nov16.filter((x) => x.departure === '11:15' && x.arrival === '13:10').every((x) => isAmbiguous(x, nov16)));
+});
+
+test('rule909: qué filas no son de un bus y si se queda las sobrantes', () => {
+  assert.equal(rule909(line(nov28, '09:00', '909'), nov28), undefined); // el 909 directo empareja como siempre
+  assert.deepEqual(rule909(line(nov28, '09:00', '905'), nov28), { theoretical: '10:20', not909Rows: true, leftovers: true });
+  assert.deepEqual(rule909(line(nov28, '05:15', '910'), nov28), { theoretical: '06:35', not909Rows: true, leftovers: true });
+  // domingo 19:00: el 904 y el 905 no son 909 directos, así que ninguno de los dos se queda las sobrantes
+  assert.deepEqual(rule909(line(nov29, '19:00', '905'), nov29), { theoretical: '20:20', not909Rows: true, leftovers: false });
+  // un bus solo a su hora (904 de las 10:15, 16/11): no hay 909 cuyas filas apartar, pero las sobrantes son suyas
+  assert.deepEqual(rule909(line(nov16, '10:15', '904'), nov16), { theoretical: '11:35', not909Rows: false, leftovers: true });
+  assert.equal(rule909(line(nov28, '09:00', '905'), nov28, false), undefined);
+  // cruza medianoche: 23:00 + 1:20 = 00:20
+  assert.equal(rule909({ ...line(nov28, '09:00', '905'), departure: '23:00' }, [])?.theoretical, '00:20');
+});
+
+test('shares909Row: el bus que tiene las mismas horas que un 909 directo (su fila en autobusing es otra)', () => {
+  assert.equal(shares909Row(line(nov28, '09:00', '905'), nov28), true);
+  assert.equal(shares909Row(line(nov28, '09:00', '909'), nov28), false);
+  assert.equal(shares909Row(line(nov29, '19:00', '905'), nov29), true);
+  assert.equal(shares909Row(line(nov29, '19:00', '904'), nov29), false); // llega a otra hora (20:30)
+  assert.equal(shares909Row(line(nov28, '09:00', '905'), nov28, false), false);
+});
+
+// /api/seats pasa esto tal cual a fetchSeats: si faltara rule909, el 905 recibiría la fila del 909.
+test('seatsContext: hermanos, gemelo de Alcorcón y regla del 909, todo junto', () => {
+  assert.deepEqual(seatsContext(line(nov28, '09:00', '905'), nov28), {
+    siblingArrivals: ['10:20'], alcorconTwin: false, rule909: { theoretical: '10:20', not909Rows: true, leftovers: true },
+  });
+  assert.deepEqual(seatsContext(on16('05:45', '07:05'), nov16), { siblingArrivals: [], alcorconTwin: true, rule909: undefined });
 });

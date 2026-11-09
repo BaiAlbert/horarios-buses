@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { parseResults } from '../lib/samar.ts';
-import { isAmbiguous, siblingArrivals } from '../lib/rules.ts';
+import { isAmbiguous, rule909, seatsContext, siblingArrivals } from '../lib/rules.ts';
 import { parseOrigenId, parseSchedule, parseSeatMap, fetchSeats, pickRow } from '../lib/autobusing.ts';
 
 const fx = (n: string) => readFileSync(new URL(`./fixtures/${n}`, import.meta.url), 'utf8');
@@ -345,4 +345,86 @@ test('fetchSeats: 903 11:15→13:15, con una sola fila 11:15→13:10 que 901 y 9
   const t903 = bus16('11:15', '13:15');
   const r = await fetchSeats(t903, '2026-11-16', { fetchImpl, siblingArrivals: siblingArrivals(t903, nov16) });
   assert.deepEqual(r, { ok: false, reason: 'Varias filas posibles en autobusing' });
+});
+
+// REGLA DEL 909 DIRECTO (DIRECT_909_RULE en rules.ts), sobre capturas reales de Talavera → Madrid:
+// sábado 28/11 y domingo 29/11. autobusing pone a los 909 directos la llegada teórica (salida + 1:20).
+const sat = parseResults(fx('samar-vuelta-2026-11-28.html')).trips;
+const sun = parseResults(fx('samar-vuelta-2026-11-29.html')).trips;
+const rows28 = parseSchedule(fx('ab-horarios-vuelta-2026-11-28.html'));
+const rows29 = parseSchedule(fx('ab-horarios-vuelta-2026-11-29.html'));
+const byLine = (all: typeof sat, dep: string, l: string) => all.find((t) => t.departure === dep && t.line === l)!;
+// Lo que recibe cada bus: «ambiguo», las llegadas de sus filas (y si es exacta) o «—».
+const outcome = (t: (typeof sat)[number], all: typeof sat, rows: typeof rows28, on = true) => {
+  if (isAmbiguous(t, all, on)) return 'ambiguo';
+  const p = pickRow(t, siblingArrivals(t, all), rows, rule909(t, all, on));
+  return p ? `${p.exact ? 'exacta' : 'descarte'} ${p.rows.map((r) => r.arrival).join(',')}` : '—';
+};
+
+test('REGLA DEL 909, 28/11: a las 09:00 el 909 directo se queda la fila 10:20 y el 905 la 10:50 (apagada, los dos ambiguos)', () => {
+  assert.equal(outcome(byLine(sat, '09:00', '909'), sat, rows28), 'exacta 10:20');
+  assert.equal(outcome(byLine(sat, '09:00', '905'), sat, rows28), 'descarte 10:50');
+  assert.equal(outcome(byLine(sat, '09:00', '905'), sat, rows28, false), 'ambiguo');
+});
+
+test('REGLA DEL 909, 28/11: la fila sobrante va al único bus de su hora que no es 909 directo (apagada, se ignora)', () => {
+  assert.equal(outcome(byLine(sat, '05:15', '910'), sat, rows28), 'descarte 07:05,07:15,07:05');
+  assert.equal(outcome(byLine(sat, '10:30', '910'), sat, rows28), 'descarte 12:30,12:25');
+  assert.equal(outcome(byLine(sat, '05:15', '909'), sat, rows28), 'exacta 06:35,06:35');
+  assert.equal(outcome(byLine(sat, '05:15', '910'), sat, rows28, false), 'exacta 07:05,07:05');
+  assert.equal(outcome(byLine(sat, '10:30', '910'), sat, rows28, false), 'exacta 12:30');
+});
+
+// Todos los buses de todos los fixtures, con la regla encendida y apagada: solo pueden cambiar estos.
+test('REGLA DEL 909: en todos los fixtures, solo cambian los buses previstos', () => {
+  const pairs: [string, string, string][] = [
+    ['03/11 ida', 'samar-ida-2026-11-03.html', 'ab-horarios-ida-2026-11-03.html'],
+    ['06/11', 'samar-vuelta-2026-11-06.html', 'ab-horarios-vuelta-2026-11-06.html'],
+    ['16/11', 'samar-vuelta-2026-11-16.html', 'ab-horarios-vuelta-2026-11-17.html'],
+    ['16/11 llenos', 'samar-vuelta-2026-11-16.html', 'ab-horarios-vuelta-2026-11-16-llenos.html'],
+    ['28/11', 'samar-vuelta-2026-11-28.html', 'ab-horarios-vuelta-2026-11-28.html'],
+    ['29/11', 'samar-vuelta-2026-11-29.html', 'ab-horarios-vuelta-2026-11-29.html'],
+  ];
+  const changed: string[] = [];
+  for (const [day, s, a] of pairs) {
+    const all = parseResults(fx(s)).trips;
+    const rows = parseSchedule(fx(a));
+    for (const t of all) {
+      const [on, off] = [outcome(t, all, rows), outcome(t, all, rows, false)];
+      if (on !== off) changed.push(`${day} ${t.departure} ${t.line}: ${off} → ${on}`);
+    }
+  }
+  assert.deepEqual(changed, [
+    '28/11 05:15 910: exacta 07:05,07:05 → descarte 07:05,07:15,07:05',
+    '28/11 09:00 909: ambiguo → exacta 10:20',
+    '28/11 09:00 905: ambiguo → descarte 10:50',
+    '28/11 10:30 910: exacta 12:30 → descarte 12:30,12:25',
+    '29/11 19:00 909: ambiguo → exacta 20:20',
+    '29/11 19:00 905: ambiguo → —',
+  ]);
+});
+
+test('fetchSeats, REGLA DEL 909: 905 de las 09:00 del 28/11 → plazas de la fila 10:50, con matchedArrival', async () => {
+  const { calls, fetchImpl } = fakeAutobusing({
+    horarios: 'ab-horarios-vuelta-2026-11-28.html',
+    plazasHtml: fx('ab-plazas-0730.html').replace('03/11/2026 07:30', '28/11/2026 09:00'),
+  });
+  const t905 = byLine(sat, '09:00', '905');
+  const r = await fetchSeats(t905, '2026-11-28', { fetchImpl, ...seatsContext(t905, sat), now: () => new Date('2026-11-09T12:00:00Z') });
+  assert.deepEqual(r, { ok: true, kind: 'count', free: 31, occupied: 19, total: 50, checkedAt: '2026-11-09T12:00:00.000Z', matchedArrival: '10:50' });
+  assert.equal(new URLSearchParams(picksOf(calls)[0].body).get('venta[nromov_ida]'), '4135606');
+});
+
+// Domingo 19:00: la única fila (20:20) es del 909 directo. Al 904 (→ 20:30) y al 905 no les queda ninguna.
+test('fetchSeats, REGLA DEL 909: domingo 29/11 a las 19:00, el 904 y el 905 «No aparecen» (apagada, el 904 «Varias filas»)', async () => {
+  assert.equal(outcome(byLine(sun, '19:00', '909'), sun, rows29), 'exacta 20:20');
+  const { fetchImpl } = fakeAutobusing({ horarios: 'ab-horarios-vuelta-2026-11-29.html' });
+  for (const l of ['904', '905']) {
+    const t = byLine(sun, '19:00', l);
+    const r = await fetchSeats(t, '2026-11-29', { fetchImpl, ...seatsContext(t, sun) });
+    assert.deepEqual(r, { ok: false, reason: 'No aparece en la venta online' });
+  }
+  const t904 = byLine(sun, '19:00', '904');
+  const off = await fetchSeats(t904, '2026-11-29', { fetchImpl, siblingArrivals: siblingArrivals(t904, sun), rule909: rule909(t904, sun, false) });
+  assert.deepEqual(off, { ok: false, reason: 'Varias filas posibles en autobusing' });
 });
