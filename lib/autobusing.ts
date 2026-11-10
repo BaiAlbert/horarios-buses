@@ -41,6 +41,9 @@ export type FetchSeatsOptions = {
   alcorconTwin?: boolean;
   // REGLA DEL 909 (rule909 en rules.ts): qué filas no son de este bus y si se queda las sobrantes; sin ella, como antes
   rule909?: Rule909;
+  // ¿otro bus de samar.es sale y llega a la misma hora (isAmbiguous en rules.ts)? Entonces no se dan plazas, aunque se
+  // mira si a esa hora hay alguna fila que pueda ser suya: si no la hay, «No aparece en la venta online».
+  ambiguous?: boolean;
   // tiempo máximo de todo el recorrido (hasta 5 peticiones): tiene que quedar por debajo del maxDuration de la ruta
   budgetMs?: number;
 };
@@ -130,6 +133,16 @@ export function pickRow(
 // Filas de autobusing con la misma salida y la misma marca de Alcorcón que el bus.
 const sameSlot = (trip: Pick<Trip, 'departure' | 'alerts'>, rows: ScheduleRow[]) =>
   rows.filter((r) => r.departure === trip.departure && r.alcorcon === onlyToAlcorcon(trip));
+
+// Filas a la hora del bus que podrían ser suyas: las que no son de otro bus de samar.es con otra llegada.
+// Una llegada repetida en los hermanos (901 y 902 de las 11:15, los dos → 13:10) no hace suya la fila: esos buses
+// son ambiguos entre sí, y la fila podría ser de este (903 → 13:15). Tampoco la de un hermano con su misma llegada
+// (el bus es ambiguo con él). REGLA DEL 909: las filas del 909 directo (salida + 1:20) no son de este bus.
+// Sin la lista de hermanos (null) no se descarta ninguna.
+function candidates(trip: Pick<Trip, 'departure' | 'arrival' | 'alerts'>, rows: ScheduleRow[], siblingArrivals: string[] | null, rule?: Rule909) {
+  const owned = siblingArrivals?.filter((a, _, all) => a !== trip.arrival && all.indexOf(a) === all.lastIndexOf(a));
+  return sameSlot(trip, rows).filter((r) => !owned?.includes(r.arrival) && !(rule?.not909Rows && r.arrival === rule.theoretical));
+}
 
 const toSpanish = (date: string) => date.split('-').reverse().join('/'); // 2026-11-03 → 03/11/2026
 
@@ -221,18 +234,25 @@ const failed = (r: BusSeats | Failure): r is Failure => 'reason' in r;
 export async function fetchSeats(
   trip: Trip,
   date: string,
-  { fetchImpl = fetch, now = () => new Date(), siblingArrivals = null, alcorconTwin = false, rule909, budgetMs = SEATS_BUDGET_MS }: FetchSeatsOptions = {},
+  { fetchImpl = fetch, now = () => new Date(), siblingArrivals = null, alcorconTwin = false, rule909, ambiguous = false, budgetMs = SEATS_BUDGET_MS }: FetchSeatsOptions = {},
 ): Promise<SeatsResult> {
   // Un único "cronómetro" para todo el recorrido (todas las sesiones): si se agota, se cancela lo pendiente.
   const budget = AbortSignal.timeout(budgetMs);
   const session = openSession(fetchImpl, budget);
   const rows = await readSchedule(session, trip, date);
   if (!rows) return { ok: false, reason: 'autobusing no reconoce el trayecto' };
-  // Si a esta hora samar.es tiene un bus de Alcorcón, alguna fila de autobusing tiene que llevar la nota. Si
-  // ninguna la lleva, quizá autobusing cambió su HTML y ya no se lee: sin la nota se mezclarían el bus normal y
-  // el de Alcorcón, así que mejor «no disponible».
-  if ((alcorconTwin || onlyToAlcorcon(trip)) && !rows.some((r) => r.departure === trip.departure && r.alcorcon)) {
+  // Si a esta hora samar.es tiene un bus de Alcorcón, alguna fila de la tabla tiene que llevar la nota. Si ninguna
+  // la lleva, quizá autobusing cambió su HTML y ya no se lee: sin la nota se mezclarían el bus normal y el de
+  // Alcorcón, así que mejor «no disponible». Basta con que la lleve una fila del día (13/11: solo la de las 05:00,
+  // porque el 05:45 de Alcorcón no está a la venta; el 05:45 normal sí tiene su fila).
+  if ((alcorconTwin || onlyToAlcorcon(trip)) && !rows.some((r) => r.alcorcon)) {
     return { ok: false, reason: 'No se distingue el bus de Alcorcón en autobusing' };
+  }
+  // Dos buses de samar.es con las mismas horas: imposible saber cuál es cuál. Pero si a esa hora no hay ninguna fila
+  // que pueda ser suya (15/11, 18:15), es que ninguno está a la venta.
+  if (ambiguous) {
+    const any = candidates(trip, rows, siblingArrivals, rule909).length > 0;
+    return { ok: false, reason: any ? 'Otro bus de Samar tiene las mismas horas' : 'No aparece en la venta online' };
   }
 
   // Encontrar nuestro bus en la tabla.
@@ -243,13 +263,9 @@ export async function fetchSeats(
     // si queda alguna, está pero no se sabe cuál es (y no se arriesga a dar las plazas de otro).
     // (Sin la lista de hermanos, siblingArrivals = null, no se puede descartar nada: «no encontrado».)
     // Que no aparezca no prueba que no se venda online: autobusing esconde los autobuses llenos.
-    // Una llegada repetida en los hermanos (901 y 902 de las 11:15, los dos → 13:10) no hace suya la fila: esos
-    // buses son ambiguos entre sí, y la fila podría ser de este (903 → 13:15). Entonces no se sabe, no «no aparece».
-    const owned = siblingArrivals?.filter((a, _, all) => all.indexOf(a) === all.lastIndexOf(a));
-    // (REGLA DEL 909: las filas del 909 directo, salida + 1:20, tampoco pueden ser de este bus.)
-    const candidates = sameSlot(trip, rows)
-      .filter((r) => !owned?.includes(r.arrival) && !(rule909?.not909Rows && r.arrival === rule909.theoretical));
-    const reason = siblingArrivals && candidates.length > 0 ? 'Varias filas posibles en autobusing' : 'No aparece en la venta online';
+    const reason = siblingArrivals && candidates(trip, rows, siblingArrivals, rule909).length > 0
+      ? 'No se sabe qué fila de autobusing es la suya'
+      : 'No aparece en la venta online';
     return { ok: false, reason };
   }
   if (picked.rows.length > MAX_ROWS) return { ok: false, reason: 'Demasiadas filas iguales en autobusing' };

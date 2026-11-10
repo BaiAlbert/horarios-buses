@@ -130,8 +130,9 @@ export function siblingArrivals(t: Trip, all: Trip[]): string[] {
 
 // Todo lo que /api/seats le pasa a fetchSeats sobre los demás buses de samar.es de ese día, junto en un objeto para
 // que no se pueda olvidar nada (sin rule909, el 905 de las 09:00 de los sábados recibiría la fila del 909).
+// `ambiguous`: no se sabe qué fila es la suya, pero fetchSeats aún mira si a esa hora hay alguna (si no, «No aparece»).
 export function seatsContext(t: Trip, all: Trip[]) {
-  return { siblingArrivals: siblingArrivals(t, all), alcorconTwin: alcorconTwin(t, all), rule909: rule909(t, all) };
+  return { siblingArrivals: siblingArrivals(t, all), alcorconTwin: alcorconTwin(t, all), rule909: rule909(t, all), ambiguous: isAmbiguous(t, all) };
 }
 export type SeatsContext = ReturnType<typeof seatsContext>;
 

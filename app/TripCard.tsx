@@ -103,8 +103,8 @@ function buyHint(trip: Trip, seats: SeatsState, twin: boolean, shared909: boolea
   if (!r.ok) {
     // autobusing esconde los autobuses llenos: que no aparezca no prueba que no se venda online.
     if (r.reason === 'No aparece en la venta online') return 'Ahora mismo no aparece en la venta online: puede estar completo o no venderse online.';
-    // El bus está en autobusing pero no se sabe en qué fila: no decir «no aparece», porque sí aparece.
-    if (r.reason === 'Varias filas posibles en autobusing') {
+    // A esa hora hay filas, pero no se sabe cuál es la suya: no decir «no aparece» ni mandarle a una fila concreta.
+    if (r.reason === 'No se sabe qué fila de autobusing es la suya' || r.reason === 'Otro bus de Samar tiene las mismas horas') {
       return `En autobusing no se sabe qué fila de las ${dep} es este bus (en Samar llega a las ${trip.arrival}).`;
     }
     return before;

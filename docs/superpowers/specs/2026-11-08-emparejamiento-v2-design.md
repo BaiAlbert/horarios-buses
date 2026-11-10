@@ -111,6 +111,19 @@ Experimental y desactivable: `DIRECT_909_RULE` en `lib/rules.ts`. Con `false`, t
 - **Domingo 29/11:** a las 19:00 salen el 904 (→ 20:30), el 909 directo y el 905 (los dos → 20:20). autobusing solo tiene la fila 20:20, que recibe el 909; el 904 y el 905 dan «No aparece en la venta online».
 - **[sin verificar]:** que la fila 10:50 sea la del 905 se deduce porque las dos cosas aparecen y faltan los mismos días; autobusing no dice la línea. Tampoco se sabe si los autobuses sobrantes hacen el mismo recorrido; la tarjeta avisa, como en el resto de refuerzos por descarte.
 
+## Añadido: revisión manual del 13, 14 y 15/11 (10/11)
+
+El usuario comparó a mano la web con autobusing (Talavera → Madrid, `docs/Analisis-manual.md`). Tres arreglos:
+
+1. **Nota de Alcorcón, en toda la tabla.** El 13/11 (y el 06/11) autobusing tiene la fila de Alcorcón de las 05:00, pero no la del 05:45 de Alcorcón, que no está a la venta. La comprobación «a esta hora alguna fila lleva la nota» daba «No se distingue» a los dos 05:45. Ahora basta con que la lleve alguna fila del día: el 05:45 normal recibe su fila (07:05, «Completo») y el de Alcorcón da «No aparece en la venta online».
+2. **Ambiguos, pero mirando autobusing.** Antes, la ruta cortaba sin consultar autobusing. Ahora `seatsContext` lleva `ambiguous` y `fetchSeats` lee la tabla. Si a esa hora no hay ninguna fila que pueda ser suya, dice «No aparece en la venta online» (902 y 903 de las 18:15 del domingo 15/11). Si la hay, dice «Otro bus de Samar tiene las mismas horas».
+3. **Textos.** «Varios buses salen y llegan a la misma hora» pasa a «Otro bus de Samar tiene las mismas horas»: la frase vieja parecía hablar de autobusing, donde a veces hay una sola fila. «Varias filas posibles en autobusing» pasa a «No se sabe qué fila de autobusing es la suya»: el 903 de las 11:15 solo tiene una fila en disputa. Con los dos motivos, la pista de compra dice «En autobusing no se sabe qué fila de las HH:MM es este bus (en Samar llega a las HH:MM).».
+
+Lo que queda igual (no se puede saber con los datos):
+
+- Entre semana a las 07:00, el 909 de ruta y el 910 llegan los dos a las 09:00 en samar.es. autobusing tiene 09:00 y 08:45, y la 08:45 solo aparece los días en que sale el 909 de ruta. Como con el 905 de los sábados, apunta a que la 08:45 es la del 909 de ruta, pero no se ha añadido ninguna regla.
+- El 901 y el 902 de las 11:15 (→ 13:10) entre semana, con una sola fila 13:10.
+
 ## Tests mínimos
 
 Con la tabla completa de autobusing y samar.es del 16/11, cada caso de la tabla «Cómo queda cada caso» recibe lo que dice ahí. Como mínimo:

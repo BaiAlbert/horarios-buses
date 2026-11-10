@@ -340,11 +340,11 @@ test('fetchSeats: hay bus de Alcorcón en samar.es pero ninguna fila con la nota
 
 // REVISIÓN: el 903 de las 11:15 (→ 13:15). La única fila 11:15 → 13:10 puede ser del 901, del 902 o suya; los dos
 // primeros son ambiguos entre sí, así que no «son dueños» de esa fila: no se sabe, no «no aparece».
-test('fetchSeats: 903 11:15→13:15, con una sola fila 11:15→13:10 que 901 y 902 se disputan → «Varias filas posibles»', async () => {
+test('fetchSeats: 903 11:15→13:15, con una sola fila 11:15→13:10 que 901 y 902 se disputan → «No se sabe qué fila…»', async () => {
   const { fetchImpl } = fakeAutobusing({ horarios: 'ab-horarios-vuelta-2026-11-17.html' });
   const t903 = bus16('11:15', '13:15');
   const r = await fetchSeats(t903, '2026-11-16', { fetchImpl, siblingArrivals: siblingArrivals(t903, nov16) });
-  assert.deepEqual(r, { ok: false, reason: 'Varias filas posibles en autobusing' });
+  assert.deepEqual(r, { ok: false, reason: 'No se sabe qué fila de autobusing es la suya' });
 });
 
 // REGLA DEL 909 DIRECTO (DIRECT_909_RULE en rules.ts), sobre capturas reales de Talavera → Madrid:
@@ -416,7 +416,7 @@ test('fetchSeats, REGLA DEL 909: 905 de las 09:00 del 28/11 → plazas de la fil
 });
 
 // Domingo 19:00: la única fila (20:20) es del 909 directo. Al 904 (→ 20:30) y al 905 no les queda ninguna.
-test('fetchSeats, REGLA DEL 909: domingo 29/11 a las 19:00, el 904 y el 905 «No aparecen» (apagada, el 904 «Varias filas»)', async () => {
+test('fetchSeats, REGLA DEL 909: domingo 29/11 a las 19:00, el 904 y el 905 «No aparecen» (apagada, el 904 «No se sabe qué fila…»)', async () => {
   assert.equal(outcome(byLine(sun, '19:00', '909'), sun, rows29), 'exacta 20:20');
   const { fetchImpl } = fakeAutobusing({ horarios: 'ab-horarios-vuelta-2026-11-29.html' });
   for (const l of ['904', '905']) {
@@ -426,5 +426,41 @@ test('fetchSeats, REGLA DEL 909: domingo 29/11 a las 19:00, el 904 y el 905 «No
   }
   const t904 = byLine(sun, '19:00', '904');
   const off = await fetchSeats(t904, '2026-11-29', { fetchImpl, siblingArrivals: siblingArrivals(t904, sun), rule909: rule909(t904, sun, false) });
-  assert.deepEqual(off, { ok: false, reason: 'Varias filas posibles en autobusing' });
+  assert.deepEqual(off, { ok: false, reason: 'No se sabe qué fila de autobusing es la suya' });
+});
+
+// ANÁLISIS MANUAL (docs/Analisis-manual.md), capturas reales de Talavera → Madrid: viernes 13/11 y domingo 15/11.
+const nov13 = parseResults(fx('samar-vuelta-2026-11-13.html')).trips;
+const nov15 = parseResults(fx('samar-vuelta-2026-11-15.html')).trips;
+const exp = (all: typeof nov13, e: string) => all.find((t) => t.expedition === e)!;
+const seats13 = (e: string) => {
+  const { fetchImpl } = fakeAutobusing({ horarios: 'ab-horarios-vuelta-2026-11-13.html' });
+  const t = exp(nov13, e);
+  return fetchSeats(t, '2026-11-13', { fetchImpl, ...seatsContext(t, nov13), now: () => new Date('2026-11-09T12:00:00Z') });
+};
+
+// La nota de Alcorcón se lee en la fila de las 05:00, así que el HTML no ha cambiado: que a las 05:45 no haya fila de
+// Alcorcón solo quiere decir que ese bus no está en la venta. El 05:45 normal tiene su fila (07:05, «Completo»).
+test('13/11, 05:45: el normal recibe su fila (Completo) y el de Alcorcón «No aparece», aunque a las 05:45 no haya nota', async () => {
+  assert.deepEqual(await seats13('909528'), { ok: true, kind: 'full', checkedAt: '2026-11-09T12:00:00.000Z' });
+  assert.deepEqual(await seats13('909530'), { ok: false, reason: 'No aparece en la venta online' });
+});
+
+test('13/11: dos buses con las mismas horas y filas a esa hora → «Otro bus de Samar tiene las mismas horas»', async () => {
+  for (const e of ['909519', '910503', '901501', '902502']) { // 07:00 → 09:00 (filas 09:00 y 08:45) y 11:15 → 13:10 (fila 13:10)
+    assert.deepEqual(await seats13(e), { ok: false, reason: 'Otro bus de Samar tiene las mismas horas' }, e);
+  }
+});
+
+test('13/11: 903 de las 11:15 (→ 13:15), con la única fila 13:10 en disputa → «No se sabe qué fila de autobusing es la suya»', async () => {
+  assert.deepEqual(await seats13('903502'), { ok: false, reason: 'No se sabe qué fila de autobusing es la suya' });
+});
+
+test('15/11: el 902 y el 903 de las 18:15 tienen las mismas horas, pero autobusing no tiene ninguna fila a esa hora → «No aparece»', async () => {
+  const { calls, fetchImpl } = fakeAutobusing({ horarios: 'ab-horarios-vuelta-2026-11-15.html' });
+  for (const e of ['902505', '903504']) {
+    const t = exp(nov15, e);
+    assert.deepEqual(await fetchSeats(t, '2026-11-15', { fetchImpl, ...seatsContext(t, nov15) }), { ok: false, reason: 'No aparece en la venta online' }, e);
+  }
+  assert.equal(picksOf(calls).length, 0);
 });

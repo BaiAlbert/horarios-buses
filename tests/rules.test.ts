@@ -140,9 +140,13 @@ test('shares909Row: el bus que tiene las mismas horas que un 909 directo (su fil
 });
 
 // /api/seats pasa esto tal cual a fetchSeats: si faltara rule909, el 905 recibiría la fila del 909.
-test('seatsContext: hermanos, gemelo de Alcorcón y regla del 909, todo junto', () => {
+test('seatsContext: hermanos, gemelo de Alcorcón, regla del 909 y ambigüedad, todo junto', () => {
   assert.deepEqual(seatsContext(line(nov28, '09:00', '905'), nov28), {
-    siblingArrivals: ['10:20'], alcorconTwin: false, rule909: { theoretical: '10:20', not909Rows: true, leftovers: true },
+    siblingArrivals: ['10:20'], alcorconTwin: false, rule909: { theoretical: '10:20', not909Rows: true, leftovers: true }, ambiguous: false,
   });
-  assert.deepEqual(seatsContext(on16('05:45', '07:05'), nov16), { siblingArrivals: [], alcorconTwin: true, rule909: undefined });
+  assert.deepEqual(seatsContext(on16('05:45', '07:05'), nov16), { siblingArrivals: [], alcorconTwin: true, rule909: undefined, ambiguous: false });
+  // 909 de ruta de las 07:00 (→ 09:00): el 910 tiene sus mismas horas
+  assert.deepEqual(seatsContext(on16('07:00', '09:00'), nov16), {
+    siblingArrivals: ['08:20', '09:00'], alcorconTwin: false, rule909: { theoretical: '08:20', not909Rows: true, leftovers: false }, ambiguous: true,
+  });
 });

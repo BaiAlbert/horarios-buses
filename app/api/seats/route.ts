@@ -9,7 +9,7 @@ import { cookies } from 'next/headers';
 import { SESSION_COOKIE, isValidSession } from '../../../lib/auth.ts';
 import { getSeats, getTrips } from '../../../lib/cache.ts';
 import type { Trip } from '../../../lib/samar.ts';
-import { isAllowedDate, isAmbiguous, parseDirection, passesThrough, seatsContext } from '../../../lib/rules.ts';
+import { isAllowedDate, parseDirection, passesThrough, seatsContext } from '../../../lib/rules.ts';
 
 // Tiempo máximo (en segundos) que Vercel deja ejecutarse esta función. Ver SEATS_BUDGET_MS en autobusing.ts.
 export const maxDuration = 30;
@@ -44,11 +44,7 @@ export async function GET(request: Request) {
   const passThrough = passesThrough(trip);
   // Sin precio en samar.es (línea 907): no está en la venta online, así que ni se pregunta a autobusing.
   if (!trip.onlineSale) return Response.json({ ok: false, reason: 'No se vende online', passThrough });
-  // Dos buses con la misma salida y llegada: no hay forma de saber cuál es cuál en autobusing.
-  if (isAmbiguous(trip, trips)) {
-    return Response.json({ ok: false, reason: 'Varios buses salen y llegan a la misma hora', passThrough });
-  }
-
+  // (Dos buses con las mismas horas: fetchSeats no da plazas, pero mira si están a la venta. Ver seatsContext.)
   try {
     return Response.json({ ...(await getSeats(trip, date, seatsContext(trip, trips))), passThrough });
   } catch (e) {

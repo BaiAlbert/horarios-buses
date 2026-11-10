@@ -79,11 +79,11 @@ const cases: [string, SeatsBody, (card: ReturnType<Page['getByRole']>) => Promis
     await expect(card.locator('.seats-ok')).toContainText('Quedan plazas');
     await expect(card.locator('.seats-ok')).toContainText('no tiene elección de asiento');
   }],
-  ['no disponible, con el motivo', { ok: false, reason: 'Varios buses salen y llegan a la misma hora', passThrough: false }, async (card) => {
+  ['no disponible, con el motivo', { ok: false, reason: 'Otro bus de Samar tiene las mismas horas', passThrough: false }, async (card) => {
     const line = card.locator('.unavailable');
     await expect(line).toContainText('Plazas no disponibles');
-    await expect(line).toContainText('(Varios buses salen y llegan a la misma hora)');
-    await expect(line).toHaveAttribute('title', 'Varios buses salen y llegan a la misma hora');
+    await expect(line).toContainText('(Otro bus de Samar tiene las mismas horas)');
+    await expect(line).toHaveAttribute('title', 'Otro bus de Samar tiene las mismas horas');
   }],
   ['llegada distinta en autobusing', { ok: true, kind: 'available', checkedAt: CHECKED_AT, matchedArrival: '12:34', passThrough: false }, async (card) => {
     await expect(card.locator('.seats .note')).toHaveText(`Aviso: en el sistema de venta este bus llega a las 12:34 (en Samar, a las ${first.arrival}). Se ha emparejado solo por la hora de salida.`);
@@ -177,13 +177,15 @@ const hintCases: [string, SeatsBody, string][] = [
     `En autobusing hay 2 filas ${first.departure} → ${first.arrival}; las dos son este horario.`],
   ['refuerzo de 3', { ok: true, kind: 'several', checkedAt: CHECKED_AT, passThrough: false, buses: [{ kind: 'full', arrival: first.arrival }, { kind: 'full', arrival: first.arrival }, { kind: 'available', arrival: first.arrival }] },
     `En autobusing hay 3 filas ${first.departure} → ${first.arrival}; todas son este horario.`],
-  ['varias filas posibles', { ok: false, reason: 'Varias filas posibles en autobusing', passThrough: false },
+  ['no se sabe qué fila', { ok: false, reason: 'No se sabe qué fila de autobusing es la suya', passThrough: false },
     `En autobusing no se sabe qué fila de las ${first.departure} es este bus (en Samar llega a las ${first.arrival}).`],
   ['refuerzo por descarte', { ok: true, kind: 'several', checkedAt: CHECKED_AT, passThrough: false, buses: descarte },
     `En autobusing, elige una de las filas de las ${first.departure} que llegan a las 07:10 y 07:15.`],
   ['no aparece en la venta online', { ok: false, reason: 'No aparece en la venta online', passThrough: false },
     'Ahora mismo no aparece en la venta online: puede estar completo o no venderse online.'],
-  ['otro fallo (dos buses con las mismas horas)', { ok: false, reason: 'Varios buses salen y llegan a la misma hora', passThrough: false },
+  ['dos buses con las mismas horas', { ok: false, reason: 'Otro bus de Samar tiene las mismas horas', passThrough: false },
+    `En autobusing no se sabe qué fila de las ${first.departure} es este bus (en Samar llega a las ${first.arrival}).`],
+  ['otro fallo', { ok: false, reason: 'No se distingue el bus de Alcorcón en autobusing', passThrough: false },
     `En autobusing, busca la fila de las ${first.departure} que llega a las ${first.arrival}.`],
 ];
 
