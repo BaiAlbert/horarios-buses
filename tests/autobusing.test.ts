@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { parseResults } from '../lib/samar.ts';
 import { isAmbiguous, rule909, seatsContext, shares910Row, siblingArrivals } from '../lib/rules.ts';
-import { parseOrigenId, parseSchedule, parseSeatMap, fetchSeats, pickRow } from '../lib/autobusing.ts';
+import { parseSchedule, parseSeatMap, fetchSeats, pickRow } from '../lib/autobusing.ts';
 
 const fx = (n: string) => readFileSync(new URL(`./fixtures/${n}`, import.meta.url), 'utf8');
 const { trips } = parseResults(fx('samar-ida-2026-11-03.html'));
@@ -16,6 +16,7 @@ type Call = { method: string; path: string; cookie: string | null; body: string 
 function fakeAutobusing(opts: {
   plazas?: string; plazasHtml?: string; plazasByNromov?: Record<string, string>;
   horarios?: string; horariosHtml?: string; status500?: boolean; horariosPost?: (body: string) => Response;
+  inicioPost?: () => Response;
 } = {}) {
   const calls: Call[] = [];
   let sessions = 0;
@@ -37,6 +38,8 @@ function fakeAutobusing(opts: {
       pickedBy.set(cookie, new URLSearchParams(body).get('venta[nromov_ida]'));
       if (opts.horariosPost) return opts.horariosPost(body);
     }
+    // sin hora, enviar el paso 1 lleva a la tabla de horarios (con hora llevaba directamente a las plazas de un bus)
+    if (key === 'POST /venta/inicio') return opts.inicioPost?.() ?? new Response(null, { status: 302, headers: { location: '/venta/horarios' } });
     if (method === 'POST') return new Response(null, { status: 302, headers: { location: '/venta/plazas' } });
     if (key === 'GET /venta/horarios') return new Response(opts.horariosHtml ?? fx(opts.horarios ?? 'ab-horarios-ida-2026-11-03.html'));
     if (key === 'GET /venta/plazas') {
@@ -50,7 +53,6 @@ function fakeAutobusing(opts: {
 }
 
 test('parsers sobre fixtures reales', () => {
-  assert.equal(parseOrigenId(fx('ab-inicio.html')), '287');
   const rows = parseSchedule(fx('ab-horarios-ida-2026-11-03.html'));
   assert.equal(rows.length, 41);
   assert.deepEqual(rows[0], { departure: '00:30', arrival: '02:05', nromov: '4184920', full: false, alcorcon: false });
@@ -67,7 +69,6 @@ test('fetchSeats 07:30 (910001): 5 peticiones, nromov correcto y cookie reenviad
     'GET /venta/inicio_info', 'POST /venta/inicio', 'GET /venta/horarios', 'POST /venta/horarios', 'GET /venta/plazas',
   ]);
   assert.match(calls[1].body, /venta%5Bfecha_ida%5D=03%2F11%2F2026/);
-  assert.match(calls[1].body, /venta%5Borigen_id%5D=287/);
   assert.match(calls[3].body, /venta%5Bnromov_ida%5D=4119481/);
   assert.ok(calls.slice(1).every((c) => c.cookie === 'rack.session=s1'));
   assert.ok(!calls.some((c) => c.method === 'POST' && c.path === '/venta/plazas'));
@@ -95,26 +96,63 @@ test('pickRow: un solo bus de samar.es a esa hora y varias filas sin llegada exa
 });
 
 test('fetchSeats: bus que cruza medianoche (23:45→01:40) se empareja', async () => {
-  const { calls, fetchImpl } = fakeAutobusing();
+  const { calls, fetchImpl } = fakeAutobusing({ plazasHtml: fx('ab-plazas-0730.html').replace('03/11/2026 07:30', '03/11/2026 23:45') });
   await fetchSeats({ ...trip0730, departure: '23:45', arrival: '01:40' }, '2026-11-03', { fetchImpl });
   const row = parseSchedule(fx('ab-horarios-ida-2026-11-03.html')).find((r) => r.departure === '23:45')!;
   assert.match(calls[3].body, new RegExp(`venta%5Bnromov_ida%5D=${row.nromov}`));
 });
 
-test('fetchSeats: la página de plazas es de otra hora → ok:false', async () => {
+// Los fallos del momento son errores (la ruta responde 502: «No se pudo consultar» con «Reintentar», y no se cachean),
+// no un «Plazas no disponibles» guardado 5 minutos.
+test('fetchSeats: la página de plazas es de otra hora → error', async () => {
   const { fetchImpl } = fakeAutobusing({ plazas: 'ab-plazas-1000.html' });
-  assert.equal((await fetchSeats(trip0730, '2026-11-03', { fetchImpl })).ok, false);
+  await assert.rejects(fetchSeats(trip0730, '2026-11-03', { fetchImpl }), /no corresponde al bus/);
 });
 
-test('fetchSeats: autobusing rechaza la selección del bus (200 o 302 a horarios) → ok:false, sin pedir plazas', async () => {
+// Sin `hora_ida`, autobusing no elige ningún bus por su cuenta: la sesión solo tiene el que se selecciona en el paso 4.
+test('fetchSeats nunca manda la hora (hora_ida) a autobusing, ni en la URL ni en el formulario', async () => {
+  const urls: string[] = [];
+  const { calls, fetchImpl } = fakeAutobusing();
+  const spy = ((input: string, init?: RequestInit) => { urls.push(input); return fetchImpl(input, init); }) as unknown as typeof fetch;
+  await fetchSeats(trip0730, '2026-11-03', { fetchImpl: spy });
+  assert.ok(urls.length === 5 && !urls.some((u) => u.includes('hora_ida')));
+  assert.ok(!calls.some((c) => c.body.includes('hora_ida')));
+});
+
+test('fetchSeats: el paso 1 no lleva a la tabla de horarios (día sin venta) → error, sin pedir la tabla', async () => {
+  const { calls, fetchImpl } = fakeAutobusing({ inicioPost: () => new Response('<form>', { status: 200 }) });
+  await assert.rejects(fetchSeats(trip0730, '2026-11-03', { fetchImpl }), /no abrió la tabla de horarios/);
+  assert.ok(!calls.some((c) => c.method === 'GET' && c.path === '/venta/horarios'));
+});
+
+// Festivos (25/12) y fechas lejanas: autobusing repite el formulario con un aviso, en vez de mandar a la tabla.
+test('fetchSeats: «No hay servicios vigentes para esa fecha» → ok:false con su motivo, sin pedir la tabla', async () => {
+  const aviso = '<div class="alert-box alert"><h4 class="text-center">Ida: No hay servicios vigentes para esa fecha</h4></div><form action="/venta/inicio">';
+  const { calls, fetchImpl } = fakeAutobusing({ inicioPost: () => new Response(aviso, { status: 200 }) });
+  assert.deepEqual(await fetchSeats(trip0730, '2026-12-25', { fetchImpl }), { ok: false, reason: 'autobusing no tiene venta para este día' });
+  assert.equal(calls.length, 2);
+});
+
+// Si autobusing cambia su HTML y no se lee ninguna fila, todos los buses dirían «No aparece en la venta online».
+test('fetchSeats: tabla de horarios ilegible (no es la tabla, o tiene filas que no se saben leer) → error', async () => {
+  const tabla = fx('ab-horarios-ida-2026-11-03.html');
+  for (const horariosHtml of ['<html><body>Mantenimiento</body></html>', tabla.replaceAll('<strong>', '<b>').replaceAll('</strong>', '</b>')]) {
+    const { fetchImpl } = fakeAutobusing({ horariosHtml });
+    await assert.rejects(fetchSeats(trip0730, '2026-11-03', { fetchImpl }), /No se pudo leer la tabla/);
+  }
+  // una tabla de horarios de verdad pero sin ninguna fila (día sin buses a la venta) no es un error
+  const { fetchImpl } = fakeAutobusing({ horariosHtml: '<table class="horarios" id="ida"><tr><th class="salida">Salida</th></tr></table>' });
+  assert.deepEqual(await fetchSeats(trip0730, '2026-11-03', { fetchImpl }), { ok: false, reason: 'No aparece en la venta online' });
+});
+
+test('fetchSeats: autobusing rechaza la selección del bus (200 o 302 a horarios) → error, sin pedir plazas', async () => {
   const rejections = [
     () => new Response(fx('ab-horarios-ida-2026-11-03.html')),
     () => new Response(null, { status: 302, headers: { location: '/venta/horarios' } }),
   ];
   for (const horariosPost of rejections) {
     const { calls, fetchImpl } = fakeAutobusing({ horariosPost });
-    const r = await fetchSeats(trip0730, '2026-11-03', { fetchImpl });
-    assert.equal(r.ok, false);
+    await assert.rejects(fetchSeats(trip0730, '2026-11-03', { fetchImpl }), /no aceptó la selección/);
     assert.ok(!calls.some((c) => c.path === '/venta/plazas'));
   }
 });
@@ -206,6 +244,29 @@ test('16/11 (regla del 909 de ruta apagada): los dos 07:00→09:00 son ambiguos,
   const normales = nov16.filter((t) => !isAmbiguous(t, nov16, true, false) && t.line !== '907' && !sinFila.includes(t.departure));
   const huerfanos = normales.filter((t) => !pickRow(t, siblingArrivals(t, nov16), full17)).map((t) => `${t.departure}-${t.arrival}`);
   assert.deepEqual(huerfanos, []);
+});
+
+// Se cuentan buses y filas: el 901 y el 902 llegan los dos a las 13:10 y solo hay UNA fila 13:10, así que uno de los
+// dos no tiene fila y la 13:20 que sobra puede ser la suya. Antes se le daba al 903 (→ 13:15).
+test('pickRow: dos hermanos con la misma llegada y una sola fila para los dos → la fila que sobra no se da por descarte', () => {
+  const row = (arrival: string) => ({ departure: '11:15', arrival, nromov: '1', full: false, alcorcon: false });
+  const t903 = { departure: '11:15', arrival: '13:15', alerts: [] };
+  assert.equal(pickRow(t903, ['13:10', '13:10'], [row('13:10'), row('13:20')]), null);
+  // con una fila 13:10 para cada uno, ninguno se queda sin la suya y la 13:20 sí es del 903
+  assert.deepEqual(pickRow(t903, ['13:10', '13:10'], [row('13:10'), row('13:10'), row('13:20')])?.rows.map((r) => r.arrival), ['13:20']);
+  // un solo hermano con dos filas (su refuerzo) sigue sin estorbar
+  assert.deepEqual(pickRow(t903, ['13:10'], [row('13:10'), row('13:10'), row('13:20')])?.rows.map((r) => r.arrival), ['13:20']);
+});
+
+// Visto en vivo (11/11, Madrid → Talavera): el 910 de las 21:30 (→ 23:20) sale solo a su hora, y autobusing tiene a las
+// 21:30 su fila (23:20) y otra (22:50) de un autobús que samar.es no lista. Solo la exacta es suya.
+test('pickRow: un bus solo a su hora, con su fila exacta y otra con otra llegada → solo la exacta', () => {
+  const row = (arrival: string) => ({ departure: '21:30', arrival, nromov: '1', full: false, alcorcon: false });
+  const solo = { ...trip0730, departure: '21:30', arrival: '23:20' };
+  const r = pickRow(solo, [], [row('22:50'), row('23:20')], rule909(solo, [solo]))!;
+  assert.deepEqual([r.exact, r.rows.map((x) => x.arrival)], [true, ['23:20']]);
+  // sin fila exacta sigue yendo por descarte, con aviso en la tarjeta (20:15 → 22:00 en samar.es, 22:10 en autobusing)
+  assert.deepEqual(pickRow(solo, [], [row('22:50'), row('23:30')], rule909(solo, [solo]))?.exact, false);
 });
 
 test('pickRow: dudas → null', () => {
@@ -302,19 +363,19 @@ test('fetchSeats: refuerzo con una fila sin elección de asiento → esa fila «
   assert.deepEqual(r.buses, [{ kind: 'count', free: 3, occupied: 62, total: 65, arrival: '06:35' }, { kind: 'available', arrival: '06:35' }]);
 });
 
-test('fetchSeats: refuerzo y una sesión recibe plazas de otra hora → todo ok:false, sin resultados a medias', async () => {
+test('fetchSeats: refuerzo y una sesión recibe plazas de otra hora → error, sin resultados a medias', async () => {
   const { fetchImpl } = fakeAutobusing({
     horarios: 'ab-horarios-vuelta-2026-11-09.html',
     plazasByNromov: { ...plazasRefuerzo, '4123140': 'ab-plazas-0730.html' },
   });
-  assert.deepEqual(await fetchSeats(refuerzo, '2026-11-09', { fetchImpl, ...refuerzoOpts }), { ok: false, reason: 'La respuesta no corresponde al bus' });
+  await assert.rejects(fetchSeats(refuerzo, '2026-11-09', { fetchImpl, ...refuerzoOpts }), /no corresponde al bus/);
 });
 
 test('fetchSeats: más de 3 filas idénticas → ok:false sin seleccionar ninguna', async () => {
   const row = (n: string) => `<tr><td class="radio">${radioOf(n)}</td><td><strong>05:15</strong></td><td><strong>06:35</strong></td><td class="numeric">11,33€</td></tr>`;
   const horariosHtml = ['1', '2', '3', '4'].map(row).join('');
   const { calls, fetchImpl } = fakeAutobusing({ horariosHtml });
-  assert.deepEqual(await fetchSeats(refuerzo, '2026-11-09', { fetchImpl, ...refuerzoOpts }), { ok: false, reason: 'Demasiadas filas iguales en autobusing' });
+  assert.deepEqual(await fetchSeats(refuerzo, '2026-11-09', { fetchImpl, ...refuerzoOpts }), { ok: false, reason: 'Demasiados autobuses a esa hora en autobusing' });
   assert.equal(picksOf(calls).length, 0);
 });
 
@@ -323,7 +384,7 @@ test('fetchSeats: más de 3 filas sobrantes por descarte → ok:false sin selecc
   const horariosHtml = [row('1', '07:10'), row('2', '07:20'), row('3', '07:30'), row('4', '07:40')].join('');
   const { calls, fetchImpl } = fakeAutobusing({ horariosHtml });
   const r = await fetchSeats({ ...trip0730, departure: '05:15', arrival: '07:05' }, '2026-11-09', { fetchImpl, siblingArrivals: [] });
-  assert.deepEqual(r, { ok: false, reason: 'Demasiadas filas iguales en autobusing' });
+  assert.deepEqual(r, { ok: false, reason: 'Demasiados autobuses a esa hora en autobusing' });
   assert.equal(picksOf(calls).length, 0);
 });
 

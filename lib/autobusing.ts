@@ -50,16 +50,12 @@ export type FetchSeatsOptions = {
   budgetMs?: number;
 };
 
-// Como mucho se consultan 3 filas idénticas (refuerzo); con más, algo raro pasa y no se lanzan más sesiones.
+// Como mucho se consultan 3 filas (un refuerzo, con llegadas iguales o no); con más, algo raro pasa y no se lanzan sesiones.
 const MAX_ROWS = 3;
+const NO_SALE_DAY = 'autobusing no tiene venta para este día'; // TripCard (buyHint) compara este mismo texto
 export const SEATS_BUDGET_MS = 18_000; // + hasta 10 s de samar.es en la ruta, dentro de los 30 s de maxDuration
 
 // Las funciones parseXxx leen trozos concretos del HTML de autobusing con expresiones regulares.
-
-// Paso 1: la primera página del formulario trae un campo oculto con el id interno del origen; se necesita para el paso 2.
-export function parseOrigenId(html: string): string | null {
-  return html.match(/<input[^>]*id="venta_origen_id"[^>]*value="([^"]*)"/)?.[1] ?? null;
-}
 
 // Una fila de la tabla de horarios de autobusing.
 // nromov: número interno del bus en autobusing (hace falta para elegirlo); null si no se puede elegir.
@@ -130,7 +126,12 @@ export function pickRow(
     return { rows: exact, exact: true };
   }
   // ...y otros buses de samar.es a esa hora que tampoco encontraron su fila (si los hay, la duda es real).
-  const unmatchedSiblings = siblingArrivals.filter((a) => !slot.some((r) => r.arrival === a));
+  // Se cuentan buses y filas, no solo las horas: si el 901 y el 902 llegan los dos a las 13:10 y solo hay UNA fila
+  // 13:10, uno de los dos se ha quedado sin fila, y la que sobra (13:20) puede ser la suya y no la de este bus.
+  const count = <T,>(list: T[], is: (x: T) => boolean) => list.filter(is).length;
+  const unmatchedSiblings = siblingArrivals.filter(
+    (a) => count(slot, (r) => r.arrival === a) < count(siblingArrivals, (x) => x === a),
+  );
   // `cond ? a : b` es un "if" en una línea: si cond es verdad da a, si no, b.
   return free.length > 0 && unmatchedSiblings.length === 0 ? { rows: free, exact: false } : null;
 }
@@ -196,27 +197,40 @@ function openSession(fetchImpl: typeof fetch, budget: AbortSignal): Session {
   return { request, lastRedirect: () => lastRedirect };
 }
 
-// PASOS 1 a 3: abrir el formulario, enviarlo y leer la tabla de horarios. null si autobusing no reconoce el trayecto.
+// PASOS 1 a 3: abrir el formulario, enviarlo y leer la tabla de horarios.
+// SIN la hora (`hora_ida`), igual que el enlace de compra (buyUrl en rules.ts): con ella, autobusing elige por su
+// cuenta un bus de esa hora y deja la sesión ya en sus plazas. Si después nuestra elección de fila (paso 4) fallara
+// sin avisar, leeríamos el mapa de asientos de ESE bus, que sale a la misma hora y pasaría la comprobación del paso 5.
+// Sin la hora, la sesión no tiene ningún bus hasta que lo elegimos nosotros (comprobado en vivo el 2026-11-10: la
+// tabla es la misma con y sin hora).
+// Devuelve null si autobusing dice que ese día no tiene venta (festivos como el 25/12 y fechas a más de unos 50 días).
 async function readSchedule(session: Session, trip: Trip, date: string): Promise<ScheduleRow[] | null> {
-  // PASO 1: abrir el formulario con el trayecto, la hora y la fecha (como el enlace "Comprar" de samar.es).
-  const qs = new URLSearchParams({
-    empresa: 'samar', origen_codigo: trip.originCode, destino_codigo: trip.destinationCode, hora_ida: trip.departure, fecha_ida: date,
-  });
-  const origenId = parseOrigenId(await session.request(`/venta/inicio_info?${qs}`));
-  if (!origenId) return null;
+  // PASO 1: abrir el formulario con el trayecto y la fecha. El trayecto se queda guardado en la sesión.
+  const qs = new URLSearchParams({ empresa: 'samar', origen_codigo: trip.originCode, destino_codigo: trip.destinationCode, fecha_ida: date });
+  await session.request(`/venta/inicio_info?${qs}`);
 
-  // PASO 2: enviar ese formulario (1 billete, solo ida).
-  await session.request('/venta/inicio', new URLSearchParams({
-    hora_ida: trip.departure,
-    'venta[origen_id]': origenId,
+  // PASO 2: enviar ese formulario (1 billete, solo ida). Si todo va bien, manda a la tabla de horarios.
+  const sent = await session.request('/venta/inicio', new URLSearchParams({
     'venta[fecha_ida]': toSpanish(date),
     'venta[fecha_vta]': '',
     'venta[cantidad]': '1',
     'venta[tipo_iyv]': 'ida',
   }));
+  // Los errores de este archivo (`throw`) llegan al usuario como «No se pudo consultar», con «Reintentar», quedan
+  // apuntados en los logs y NO se guardan en la caché. Son para lo que no debería pasar o puede ir bien a la siguiente.
+  // En vez de mandar a la tabla, autobusing repite el formulario con «Ida: No hay servicios vigentes para esa fecha».
+  if (/no hay servicios vigentes/i.test(sent)) return null;
+  if (!session.lastRedirect().endsWith('/venta/horarios')) throw new Error('autobusing no abrió la tabla de horarios');
 
   // PASO 3: leer la tabla de horarios.
-  return parseSchedule(await session.request('/venta/horarios'));
+  const html = await session.request('/venta/horarios');
+  const rows = parseSchedule(html);
+  // Ninguna fila leída: o no es la página de horarios, o tiene filas que ya no sabemos leer (autobusing cambió su
+  // HTML). Sin este aviso, todos los buses dirían «No aparece en la venta online» y nadie se enteraría.
+  if (rows.length === 0 && (!html.includes('class="horarios"') || html.includes('class="radio"'))) {
+    throw new Error('No se pudo leer la tabla de horarios de autobusing (¿ha cambiado su HTML?)');
+  }
+  return rows;
 }
 
 // PASOS 4 y 5: elegir una fila de la tabla y leer su mapa de asientos.
@@ -226,16 +240,16 @@ async function readRow(session: Session, row: ScheduleRow, trip: Trip, date: str
 
   // PASO 4: elegir ese bus pidiendo "elegir plazas" (ir al mapa de asientos).
   await session.request('/venta/horarios', new URLSearchParams({ 'venta[elegir_plazas_ida]': 't', 'venta[nromov_ida]': row.nromov }));
-  // si autobusing rechaza la selección, la sesión seguiría en el bus que eligió /venta/inicio (quizá otro a la misma hora)
   // sin elección de asiento autobusing salta a los datos del viajero (no muestra plazas; no se entra). Como la fila
   // no estaba «Completo», quedan plazas aunque no se sepa cuántas.
   if (session.lastRedirect().endsWith('/venta/viajeros')) return { kind: 'available' };
-  if (!session.lastRedirect().endsWith('/venta/plazas')) return { ok: false, reason: 'autobusing no aceptó la selección del bus' };
+  // Fallo del momento: error (se puede reintentar y no se guarda 5 minutos en la caché), no un «no disponible».
+  if (!session.lastRedirect().endsWith('/venta/plazas')) throw new Error('autobusing no aceptó la selección del bus');
 
   // PASO 5: leer el mapa de asientos y comprobar que la fecha y hora que muestra son las de nuestro bus.
   const map = parseSeatMap(await session.request('/venta/plazas'));
   if (map.when !== `${toSpanish(date)} ${trip.departure}` || map.total === 0) {
-    return { ok: false, reason: 'La respuesta no corresponde al bus' };
+    throw new Error(`La página de plazas no corresponde al bus (dice «${map.when}», ${map.total} asientos)`);
   }
   return { kind: 'count', free: map.free, occupied: map.occupied, total: map.total };
 }
@@ -254,7 +268,8 @@ export async function fetchSeats(
   const budget = AbortSignal.timeout(budgetMs);
   const session = openSession(fetchImpl, budget);
   const rows = await readSchedule(session, trip, date);
-  if (!rows) return { ok: false, reason: 'autobusing no reconoce el trayecto' };
+  // No es un fallo del momento: se guarda en la caché como cualquier otro resultado.
+  if (!rows) return { ok: false, reason: NO_SALE_DAY };
   // Si a esta hora samar.es tiene un bus de Alcorcón, alguna fila de la tabla tiene que llevar la nota. Si ninguna
   // la lleva, quizá autobusing cambió su HTML y ya no se lee: sin la nota se mezclarían el bus normal y el de
   // Alcorcón, así que mejor «no disponible». Basta con que la lleve una fila del día (13/11: solo la de las 05:00,
@@ -282,7 +297,7 @@ export async function fetchSeats(
       : 'No aparece en la venta online';
     return { ok: false, reason };
   }
-  if (picked.rows.length > MAX_ROWS) return { ok: false, reason: 'Demasiadas filas iguales en autobusing' };
+  if (picked.rows.length > MAX_ROWS) return { ok: false, reason: 'Demasiados autobuses a esa hora en autobusing' };
 
   // Lo normal: una sola fila, en la misma sesión.
   if (picked.rows.length === 1) {
@@ -301,7 +316,8 @@ export async function fetchSeats(
     const withArrival = (r: BusSeats | Failure) => (failed(r) ? r : { ...r, arrival: row.arrival });
     if (i === 0 || row.full || !row.nromov) return withArrival(await readRow(session, row, trip, date)); // sin selección o la primera
     const own = openSession(fetchImpl, budget);
-    if (!(await readSchedule(own, trip, date))) return { ok: false, reason: 'autobusing no reconoce el trayecto' };
+    // solo para dejar la sesión en la tabla; la fila ya está elegida
+    if (!(await readSchedule(own, trip, date))) throw new Error('autobusing dejó de tener venta para ese día a mitad de la consulta');
     return withArrival(await readRow(own, row, trip, date));
   }));
   // Si alguna fila falla, falla todo: mejor «no disponible» que un resultado a medias.

@@ -81,6 +81,8 @@ export function decodeEntities(s: string): string {
 // y junta los espacios repetidos en uno solo.
 const text = (html: string) => decodeEntities(html.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
 
+const HHMM = /^\d\d:\d\d$/; // una hora como "08:30"
+
 // FUNCIÓN PRINCIPAL DEL SCRAPING: recibe el HTML completo de la página de resultados de samar.es
 // y devuelve la lista de buses y los avisos. Si la página no tiene la forma esperada lanza un error
 // (`throw`) en vez de devolver datos incompletos: es preferible mostrar "no se pudo consultar"
@@ -88,7 +90,7 @@ const text = (html: string) => decodeEntities(html.replace(/<[^>]+>/g, ' ')).rep
 export function parseResults(html: string): SearchResult {
   // 1) Contador "N resultados" que muestra samar.es. Sirve para comprobar después que no se escapa ningún bus.
   //    `match` devuelve null si no encuentra nada; si encuentra, count[1] es lo que capturó el primer paréntesis.
-  const count = html.match(/<span class="badge[^"]*">\s*(\d+) resultados\s*<\/span>/);
+  const count = html.match(/<span class="badge[^"]*">\s*(\d+) resultados?\s*<\/span>/); // «1 resultado» va en singular
   if (!count) throw new Error('Página de samar.es sin contador de resultados');
 
   // 2) Cada bus es una "tarjeta" <div class="journey-card ...">. Se corta el HTML en trozos por ese
@@ -118,15 +120,24 @@ export function parseResults(html: string): SearchResult {
     // Paradas del itinerario: cada una tiene un nombre y una hora ("08:30h"; se le quita la "h" final).
     const stops = [...chunk.matchAll(/itinerary-stop-name[^"]*">([^<]+)<\/span>[\s\S]*?itinerary-stop-time[^"]*">([^<]+)<\/div>/g)]
       .map((m) => ({ name: decodeEntities(m[1]).trim(), time: m[2].trim().replace(/h$/, '') }));
-    // Un bus sin identificador o con menos de 2 paradas (origen y destino) significa que samar.es cambió su HTML.
-    if (!attrs.expedition || stops.length < 2) throw new Error('Tarjeta de samar.es incompleta (revisar resultados)');
+    // El texto es tipo "901 - Madrid - Talavera": nos quedamos con lo de antes del primer " - ".
+    // `?.` (encadenamiento opcional): si match devuelve null, no falla y da undefined; luego `??` pone ''.
+    const line = (chunk.match(/<div class="small text-muted mb-2">([^<]+)<\/div>/)?.[1] ?? '').split(' - ')[0].trim();
+    const departure = attrs['departure-time'] ?? '';
+    const arrival = attrs['arrival-time'] ?? '';
+    // Un bus sin identificador, con menos de 2 paradas (origen y destino), sin horas "HH:MM" o sin número de línea
+    // significa que samar.es cambió su HTML. Las horas y la línea deciden con qué fila de autobusing se empareja
+    // el bus (y las reglas del 909), así que con ellas mal es mejor no enseñar nada.
+    if (!attrs.expedition || stops.length < 2 || !HHMM.test(departure) || !HHMM.test(arrival) || !/^\d+$/.test(line)) {
+      throw new Error('Tarjeta de samar.es incompleta (revisar resultados)');
+    }
+    // `.trim()`: un precio en blanco (" ") no es un precio 0; sin él, Number(" ") da 0 y ningún bus se vendería online.
+    const price = attrs.price?.trim();
     return {
       expedition: attrs.expedition,
-      // El texto es tipo "901 - Madrid - Talavera": nos quedamos con lo de antes del primer " - ".
-      // `?.` (encadenamiento opcional): si match devuelve null, no falla y da undefined; luego `??` pone ''.
-      line: (chunk.match(/<div class="small text-muted mb-2">([^<]+)<\/div>/)?.[1] ?? '').split(' - ')[0].trim(),
-      departure: attrs['departure-time'],
-      arrival: attrs['arrival-time'],
+      line,
+      departure,
+      arrival,
       duration: (chunk.match(/time-duration">([^<]+)<\/div>/)?.[1] ?? '').trim().replace(/h$/, ''),
       stops,
       originCode: attrs['origin-purchase-code'] ?? '',
@@ -142,7 +153,7 @@ export function parseResults(html: string): SearchResult {
       )],
       // Solo un precio 0 explícito quita la venta: si samar.es deja de poner el precio, se sigue ofreciendo
       // la compra (y autobusing dirá si el bus está o no). `data-can-buy-online` no sirve: es true en todos.
-      onlineSale: !(attrs.price && Number(attrs.price) === 0),
+      onlineSale: !(price && Number(price) === 0),
     };
   });
 

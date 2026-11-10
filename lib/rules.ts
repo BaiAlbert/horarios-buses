@@ -109,7 +109,10 @@ export type Rule909 = { theoretical: string; not909Rows: boolean; leftovers: boo
 export function rule909(t: Trip, all: Trip[], on = DIRECT_909_RULE): Rule909 | undefined {
   if (!on || isDirect909(t)) return undefined;
   const others = all.filter((o) => sameSlot(t, o));
-  return { theoretical: plus80(t.departure), not909Rows: others.some(isDirect909), leftovers: others.every(isDirect909) };
+  // `others.length > 0`: un bus que sale SOLO a su hora no se queda las filas sobrantes (`every` da true con una lista
+  // vacía). Visto en vivo el 2026-11-10: el 910 de las 21:30 (→ 23:20) salía como «2 autobuses» por una fila 21:30 → 22:50
+  // (salida + 1:20) que es de otro autobús que samar.es no lista, con otros asientos ocupados, y seguramente directo.
+  return { theoretical: plus80(t.departure), not909Rows: others.some(isDirect909), leftovers: others.length > 0 && others.every(isDirect909) };
 }
 
 // ¿`t` tiene las mismas horas que un 909 directo y no lo es? Entonces su fila en autobusing NO es la que llega a la
@@ -133,13 +136,21 @@ export const RUTA_909_RULE = true;
 
 const isRuta909 = (t: Trip) => t.line === '909' && !isDirect(t);
 
-// Un 909 de ruta y un 910 (en cualquier orden): no son ambiguos entre sí aunque tengan las mismas horas.
-const splitRuta909 = (t: Trip, o: Trip) => (isRuta909(t) && o.line === '910') || (t.line === '910' && isRuta909(o));
+// La regla solo vale donde se observó: la salida de las 07:00 desde Talavera ('0831' es su código de venta). A otra
+// hora o en el otro sentido no hay ningún dato que diga qué fila es de quién, así que un 909 de ruta y un 910
+// empatados siguen siendo «ambiguos» (sin esto, el 910 se quedaría las filas de los dos, como si fuera un refuerzo).
+const RUTA_909_DEPARTURE = '07:00';
+const RUTA_909_ORIGIN = '0831';
+const inRuta909Slot = (t: Trip) => t.departure === RUTA_909_DEPARTURE && t.originCode === RUTA_909_ORIGIN;
+
+// Un 909 de ruta y un 910 (en cualquier orden) a esa hora: no son ambiguos entre sí aunque tengan las mismas horas.
+const splitRuta909 = (t: Trip, o: Trip) =>
+  inRuta909Slot(t) && ((isRuta909(t) && o.line === '910') || (t.line === '910' && isRuta909(o)));
 
 // ¿`t` es un 909 de ruta con las mismas horas que un 910? Entonces las filas que llegan a su hora de samar.es son del
 // 910: pickRow no se las da, y la pista de compra lo dice.
 export function shares910Row(t: Trip, all: Trip[], on = RUTA_909_RULE): boolean {
-  return on && isRuta909(t) && all.some((o) => sameSlot(t, o) && o.arrival === t.arrival && o.line === '910');
+  return on && inRuta909Slot(t) && isRuta909(t) && all.some((o) => sameSlot(t, o) && o.arrival === t.arrival && o.line === '910');
 }
 
 // De qué bus es la fila de autobusing con las horas de samar.es de `t`, si no es de `t` (lo usa la pista de compra):
@@ -183,6 +194,15 @@ const madridDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }
 // Fecha de hoy en Madrid, aunque el servidor o el móvil estén en otra zona horaria.
 export function todayMadrid(now: Date = new Date()): string {
   return madridDay.format(now);
+}
+
+// Hora de Madrid como "HH:MM" (de 00:00 a 23:59), para compararla como texto con las horas de salida.
+const madridClock = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Europe/Madrid' });
+
+// ¿El bus ya ha salido? Solo puede pasar buscando hoy. autobusing deja de listar las salidas pasadas (comprobado el
+// 2026-11-10), así que sin esto la tarjeta diría «puede estar completo o no venderse online».
+export function hasDeparted(t: Pick<Trip, 'departure'>, date: string, now: Date = new Date()): boolean {
+  return date === todayMadrid(now) && t.departure < madridClock.format(now);
 }
 
 // Hasta cuántos días en el futuro se puede buscar.

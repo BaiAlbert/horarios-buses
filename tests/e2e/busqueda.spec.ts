@@ -114,13 +114,13 @@ test('401: manda a /login', async ({ page }) => {
 });
 
 test.describe('aviso de resultados guardados', () => {
-  // el reloj está fijado a las 09:00Z (10:00 en Madrid)
+  // el reloj está fijado a las 00:10 de Madrid (23:10Z del día anterior)
   test('con 12 min de antigüedad: lo avisa con la hora de consulta', async ({ page }) => {
-    await mockTrips(page, tripsFixture(undefined, `${DAY}T08:48:00Z`));
+    await mockTrips(page, tripsFixture(undefined, '2026-11-02T22:58:00Z'));
     await openLoggedIn(page);
     await search(page);
 
-    await expect(page.locator('.fetched--cached')).toHaveText(/Resultados guardados, consultados a las 09:48 \(hace 12 min\)/);
+    await expect(page.locator('.fetched--cached')).toHaveText(/Resultados guardados, consultados a las 23:58 \(hace 12 min\)/);
   });
 
   test('recién descargado: solo «Consultado a las»', async ({ page }) => {
@@ -128,7 +128,7 @@ test.describe('aviso de resultados guardados', () => {
     await openLoggedIn(page);
     await search(page);
 
-    await expect(page.locator('.fetched')).toHaveText('Consultado a las 09:59');
+    await expect(page.locator('.fetched')).toHaveText('Consultado a las 00:09');
     await expect(page.locator('.fetched--cached')).toHaveCount(0);
   });
 

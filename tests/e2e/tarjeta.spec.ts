@@ -46,7 +46,7 @@ test('plazas con cifras: pide el bus concreto y solo cambia esa tarjeta', async 
   const params = new URL((await request).url()).searchParams;
   expect(Object.fromEntries(params)).toEqual({ dir: 'ida', date: '2026-11-03', exp: first.expedition });
   await expect(card.locator('.seats-ok')).toContainText('12 libres · 30 ocupadas · 42 totales');
-  await expect(card.locator('.seats-ok small')).toHaveText('(consultado 09:59)');
+  await expect(card.locator('.seats-ok small')).toHaveText('(consultado 00:09)');
   await expect(seatsButton(page.getByRole('article').nth(1))).toBeVisible(); // las demás siguen sin consultar
 });
 
@@ -185,6 +185,8 @@ const hintCases: [string, SeatsBody, string][] = [
     'Ahora mismo no aparece en la venta online: puede estar completo o no venderse online.'],
   ['dos buses con las mismas horas', { ok: false, reason: 'Otro bus de Samar tiene las mismas horas', passThrough: false },
     `En autobusing no se sabe qué fila de las ${first.departure} es este bus (en Samar llega a las ${first.arrival}).`],
+  ['día sin venta en autobusing', { ok: false, reason: 'autobusing no tiene venta para este día', passThrough: false },
+    'Ahora mismo autobusing no vende billetes para este día (festivo o fecha aún sin abrir).'],
   ['otro fallo', { ok: false, reason: 'No se distingue el bus de Alcorcón en autobusing', passThrough: false },
     `En autobusing, busca la fila de las ${first.departure} que llega a las ${first.arrival}.`],
 ];
@@ -227,6 +229,29 @@ test('bus sin venta online (907, sin precio en samar.es): sin botones y lo dice'
   await expect(card.getByText('Este bus no se vende online.')).toBeVisible();
   await expect(seatsButton(card)).toHaveCount(0);
   await expect(buyLink(card)).toHaveCount(0);
+});
+
+// Buscando hoy, los buses cuya hora de salida ya pasó no tienen ni plazas ni compra: autobusing ya no los lista.
+test('bus que ya ha salido: lo dice, sin «Ver plazas libres» ni compra; los que quedan por salir, como siempre', async ({ page }) => {
+  await mockTrips(page);
+  await openLoggedIn(page);
+  await page.clock.setFixedTime(new Date(`${DAY}T10:00:00+01:00`));
+  await search(page);
+  const cards = page.getByRole('article');
+  const gone = trips.filter((t) => t.departure < '10:00' && t.onlineSale).length; // los 907 dicen «no se vende online»
+  expect(gone).toBeGreaterThan(0);
+  await expect(page.getByText('Este bus ya ha salido.')).toHaveCount(gone);
+  await expect(seatsButton(cards.first())).toHaveCount(0);
+  await expect(buyLink(cards.first())).toHaveCount(0);
+  await expect(seatsButton(cards.last())).toBeVisible();
+});
+
+test('plazas de una búsqueda de otro día (400): pide buscar de nuevo, sin «Reintentar»', async ({ page }) => {
+  const card = await openFirstCard(page);
+  await page.route('**/api/seats?*', (route) => route.fulfill({ status: 400, json: { error: 'Parámetros no válidos' } }));
+  await seatsButton(card).click();
+  await expect(card.locator('.seats .error')).toHaveText('Esta búsqueda es de otro día. Vuelve a pulsar «Buscar buses».');
+  await expect(card.getByRole('button', { name: 'Reintentar' })).toHaveCount(0);
 });
 
 // REVISIÓN: una respuesta de /api/trips de antes de onlineSale (guardada en el navegador justo antes de desplegar)

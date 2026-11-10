@@ -89,7 +89,26 @@ test('onlineSale: los buses con precio 0,00 en samar.es (907 del 16/11) no se ve
 
 test('onlineSale: sin precio o con un precio vacío, se supone que sí se vende (un cambio de samar.es no quita la compra)', () => {
   const html = fx('samar-vuelta-2026-11-16.html');
-  for (const changed of [html.replaceAll('data-price="0.00"', 'data-price=""'), html.replace(/data-price="[^"]*"/g, '')]) {
+  // un precio en blanco (" ") tampoco es un precio 0: antes Number(" ") daba 0 y ningún bus se vendía
+  for (const changed of [html.replaceAll('data-price="0.00"', 'data-price=""'), html.replace(/data-price="[^"]*"/g, ''), html.replace(/data-price="[^"]*"/g, 'data-price=" "')]) {
     assert.ok(parseResults(changed).trips.every((t) => t.onlineSale));
   }
+});
+
+// Las horas y la línea deciden con qué fila de autobusing se empareja el bus: si faltan, mejor «No se pudo consultar».
+test('parseResults lanza error si a una tarjeta le faltan las horas o la línea, o no tienen el formato esperado', () => {
+  const html = fx('samar-vuelta-2026-11-16.html');
+  const broken = [
+    html.replace(/data-departure-time="[^"]*"/, ''),
+    html.replace(/data-arrival-time="[^"]*"/, 'data-arrival-time="7:05"'),
+    html.replace('class="small text-muted mb-2"', 'class="small text-muted mb-3"'),
+  ];
+  for (const changed of broken) assert.throws(() => parseResults(changed), /incompleta/);
+});
+
+test('parseResults acepta el contador en singular («1 resultado»)', () => {
+  const html = fx('samar-vuelta-2026-11-16.html');
+  const [head, ...cards] = html.split(/(?=<div class="journey-card(?=[" ]))/);
+  const one = head.replace(/\d+ resultados/, '1 resultado') + cards[0] + cards.at(-1)!.slice(cards.at(-1)!.indexOf('<div class="modal'));
+  assert.equal(parseResults(one).trips.length, 1);
 });

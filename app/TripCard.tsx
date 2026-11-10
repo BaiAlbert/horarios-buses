@@ -14,7 +14,7 @@ import AlertIcon from './AlertIcon.tsx';
 type SeatsState =
   | { status: 'idle' }
   | { status: 'loading' }
-  | { status: 'error' }
+  | { status: 'error'; stale?: boolean } // stale: la búsqueda es de un día que ya pasó (pestaña abierta desde ayer)
   | { status: 'done'; result: SeatsResult & { passThrough: boolean } };
 
 // Une horas como en una frase: ['07:10', '07:15'] → «07:10 y 07:15» (Intl.ListFormat es del propio navegador).
@@ -103,6 +103,8 @@ function buyHint(trip: Trip, seats: SeatsState, twin: boolean, owner: RowOwner):
   if (!r.ok) {
     // autobusing esconde los autobuses llenos: que no aparezca no prueba que no se venda online.
     if (r.reason === 'No aparece en la venta online') return 'Ahora mismo no aparece en la venta online: puede estar completo o no venderse online.';
+    // Festivos y fechas lejanas: autobusing no vende nada ese día, así que no hay fila que buscar.
+    if (r.reason === 'autobusing no tiene venta para este día') return 'Ahora mismo autobusing no vende billetes para este día (festivo o fecha aún sin abrir).';
     // A esa hora hay filas, pero no se sabe cuál es la suya: no decir «no aparece» ni mandarle a una fila concreta.
     if (r.reason === 'No se sabe qué fila de autobusing es la suya' || r.reason === 'Otro bus de Samar tiene las mismas horas') {
       return `En autobusing no se sabe qué fila de las ${dep} es este bus (en Samar llega a las ${trip.arrival}).`;
@@ -122,16 +124,19 @@ function buyHint(trip: Trip, seats: SeatsState, twin: boolean, owner: RowOwner):
 
 // Props que recibe la tarjeta desde SearchApp: el bus, el sentido y la fecha buscados (para pedir las
 // plazas), si hay que ocultar las paradas, si a su misma hora sale otro bus de Alcorcón (alcorconTwin) y
-// de quién es su fila de autobusing si no es suya (rowOwner).
-type Props = { trip: Trip; dir: Direction; date: string; hideItinerary: boolean; alcorconTwin: boolean; rowOwner: RowOwner };
+// de quién es su fila de autobusing si no es suya (rowOwner) y si el bus ya ha salido (hasDeparted en rules.ts).
+type Props = { trip: Trip; dir: Direction; date: string; hideItinerary: boolean; alcorconTwin: boolean; rowOwner: RowOwner; departed: boolean };
 
 // memo: elegir otra fecha o trayecto en el buscador no vuelve a pintar las tarjetas ya en pantalla
 // (memo hace que el componente solo se repinte si cambian sus props.)
-export default memo(function TripCard({ trip, dir, date, hideItinerary, alcorconTwin, rowOwner }: Props) {
+export default memo(function TripCard({ trip, dir, date, hideItinerary, alcorconTwin, rowOwner, departed }: Props) {
   // Cada tarjeta tiene su propio estado de plazas, independiente de las demás.
   const [seats, setSeats] = useState<SeatsState>({ status: 'idle' });
   const kind = tripKind(trip);
   const dur = formatDuration(trip.duration);
+  // Sin plazas ni compra, y por qué: el bus no se vende online (sin precio en samar.es, línea 907: se paga en el bus)
+  // o ya ha salido. `=== false`: si el dato falta (respuesta de una versión anterior), el bus se vende.
+  const closed = trip.onlineSale === false ? 'Este bus no se vende online.' : departed ? 'Este bus ya ha salido.' : null;
 
   // Pide las plazas de este bus a nuestra API. Solo manda el identificador; el servidor saca el resto.
   async function loadSeats() {
@@ -139,6 +144,8 @@ export default memo(function TripCard({ trip, dir, date, hideItinerary, alcorcon
     try {
       const res = await fetch(`/api/seats?dir=${dir}&date=${date}&exp=${trip.expedition}`);
       if (res.status === 401) { window.location.href = '/login'; return; } // sesión caducada
+      // 400 = la fecha ya no vale: la pestaña lleva abierta desde otro día. Reintentar no lo arregla; buscar de nuevo, sí.
+      if (res.status === 400) { setSeats({ status: 'error', stale: true }); return; }
       if (!res.ok) throw new Error(String(res.status));
       const result: SeatsResult & { passThrough: boolean } = await res.json();
       if (typeof result?.ok !== 'boolean') throw new Error('respuesta inesperada');
@@ -183,12 +190,10 @@ export default memo(function TripCard({ trip, dir, date, hideItinerary, alcorcon
         </div>
       </div>
 
-      {/* Bus sin precio en samar.es (línea 907): se paga en el bus, así que ni plazas ni compra */}
-      {/* `=== false`: si el dato falta (respuesta de una versión anterior), el bus se vende */}
-      {trip.onlineSale === false && <p className="seats note">Este bus no se vende online.</p>}
+      {closed && <p className="seats note">{closed}</p>}
 
       {/* Zona de plazas. aria-live="polite": los lectores de pantalla anuncian el resultado cuando aparece */}
-      {trip.onlineSale !== false && (<>
+      {!closed && (<>
         <div className="seats" aria-live="polite">
           {/* Aún sin consultar o consultando: el botón */}
           {(seats.status === 'idle' || seats.status === 'loading') && (
@@ -198,8 +203,9 @@ export default memo(function TripCard({ trip, dir, date, hideItinerary, alcorcon
             </button>
           )}
           {/* La petición falló (sin internet, servidor caído...) */}
-          {seats.status === 'error' && (
-            <p className="error">No se pudo consultar. <button type="button" onClick={loadSeats}>Reintentar</button></p>
+          {seats.status === 'error' && (seats.stale
+            ? <p className="error">Esta búsqueda es de otro día. Vuelve a pulsar «Buscar buses».</p>
+            : <p className="error">No se pudo consultar. <button type="button" onClick={loadSeats}>Reintentar</button></p>
           )}
           {/* Hay respuesta: o bien plazas (ok: true) o bien el motivo por el que no se pudieron saber (ok: false) */}
           {seats.status === 'done' && (seats.result.ok ? (

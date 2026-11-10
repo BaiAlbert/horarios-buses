@@ -41,7 +41,7 @@ for (const esquema of ['light', 'dark'] as const) {
     });
 
     test('resultados con aviso de caché', async ({ page }) => {
-      await mockTrips(page, tripsFixture(undefined, '2026-11-03T08:40:00Z'));
+      await mockTrips(page, tripsFixture(undefined, '2026-11-02T22:50:00Z'));
       await openLoggedIn(page);
       await search(page);
       await expect(page.locator('.fetched--cached')).toBeVisible();
