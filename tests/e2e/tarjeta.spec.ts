@@ -291,3 +291,26 @@ test('plazas, regla del 909: refuerzo con filas exactas y una sobrante → llega
   await expect(card.locator('.seats .note')).toHaveText('Aviso: en el sistema de venta estos autobuses llegan a las 07:05 y 07:15 (en Samar, a las 07:05). Se han emparejado por descarte: puede que no hagan exactamente el mismo recorrido.');
   await expect(buyHint(card)).toHaveText('En autobusing, elige una de las filas de las 05:15 que llegan a las 07:05 y 07:15.');
 });
+
+// REGLA DEL 909 DE RUTA (RUTA_909_RULE en lib/rules.ts), viernes 13/11 de Talavera a Madrid. A las 07:00 salen el 909
+// de ruta y el 910, los dos → 09:00 en samar.es; en autobusing, la fila 09:00 es la del 910 y la del 909 de ruta llega
+// a las 08:45.
+async function openNov13(page: Page) {
+  await mockTrips(page, tripsFixture('samar-vuelta-2026-11-13.html'));
+  await openLoggedIn(page);
+  await search(page);
+}
+
+test('comprar, regla del 909 de ruta: a las 07:00 la pista no manda al 909 de ruta a la fila del 910', async ({ page }) => {
+  await openNov13(page);
+  const c910 = lineCard(page, /07:00.*09:00/, '910');
+  const c909 = lineCard(page, /07:00.*09:00/, '909');
+  await expect(buyHint(c910)).toHaveText('En autobusing, busca la fila de las 07:00 que llega a las 09:00. Si no está, «Ver plazas libres» te dice cuál es.');
+  await expect(buyHint(c909)).toHaveText('En autobusing, la fila de las 07:00 que llega a las 09:00 es la del 910; la de este bus llega a otra hora. «Ver plazas libres» te dice cuál es.');
+
+  await mockSeats(page, { ok: true, kind: 'count', free: 31, occupied: 19, total: 50, checkedAt: CHECKED_AT, matchedArrival: '08:45', passThrough: false });
+  await seatsButton(c909).click();
+  await expect(c909.locator('.seats')).toContainText('31 libres');
+  await expect(c909.locator('.seats .note').first()).toHaveText('Aviso: en el sistema de venta este bus llega a las 08:45 (en Samar, a las 09:00). Se ha emparejado solo por la hora de salida.');
+  await expect(buyHint(c909)).toHaveText('En autobusing, elige la fila 07:00 → 08:45.');
+});

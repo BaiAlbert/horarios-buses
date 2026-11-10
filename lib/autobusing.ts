@@ -44,6 +44,8 @@ export type FetchSeatsOptions = {
   // ¿otro bus de samar.es sale y llega a la misma hora (isAmbiguous en rules.ts)? Entonces no se dan plazas, aunque se
   // mira si a esa hora hay alguna fila que pueda ser suya: si no la hay, «No aparece en la venta online».
   ambiguous?: boolean;
+  // REGLA DEL 909 DE RUTA (shares910Row en rules.ts): las filas que llegan a su hora de samar.es son del 910, no suyas
+  shares910Row?: boolean;
   // tiempo máximo de todo el recorrido (hasta 5 peticiones): tiene que quedar por debajo del maxDuration de la ruta
   budgetMs?: number;
 };
@@ -105,15 +107,18 @@ export function parseSeatMap(html: string): { when: string | null; free: number;
  * 3. Ante la duda, null: es preferible no dar plazas que dar las de otro bus.
  * REGLA DEL 909 (`rule`, ver rule909 en rules.ts): si a esa hora sale un 909 directo, sus filas (salida + 1:20) no
  * son de este bus; y si este es el único bus de su hora que no es 909 directo, también recibe las filas sobrantes.
+ * REGLA DEL 909 DE RUTA (`shares910Row`, ver rules.ts): un 909 de ruta empatado con un 910 no recibe las filas que
+ * llegan a su hora de samar.es (son del 910), así que va por descarte (07:00 → 08:45).
  */
 export function pickRow(
   trip: Pick<Trip, 'departure' | 'arrival' | 'alerts'>,
   siblingArrivals: string[], // horas de llegada de los OTROS buses de samar.es que salen a la misma hora (y misma marca)
   rows: ScheduleRow[],
   rule?: Rule909,
+  shares910Row = false, // REGLA DEL 909 DE RUTA: las filas que llegan a su hora de samar.es son del 910
 ): { rows: ScheduleRow[]; exact: boolean } | null {
   const slot = sameSlot(trip, rows);
-  const sameDeparture = slot.filter((r) => !(rule?.not909Rows && r.arrival === rule.theoretical));
+  const sameDeparture = slot.filter((r) => !othersRow(trip, r, rule, shares910Row));
   const exact = sameDeparture.filter((r) => r.arrival === trip.arrival);
   // Filas a esa hora que no son de ningún otro bus de samar.es...
   const free = sameDeparture.filter((r) => !siblingArrivals.includes(r.arrival));
@@ -139,9 +144,18 @@ const sameSlot = (trip: Pick<Trip, 'departure' | 'alerts'>, rows: ScheduleRow[])
 // son ambiguos entre sí, y la fila podría ser de este (903 → 13:15). Tampoco la de un hermano con su misma llegada
 // (el bus es ambiguo con él). REGLA DEL 909: las filas del 909 directo (salida + 1:20) no son de este bus.
 // Sin la lista de hermanos (null) no se descarta ninguna.
-function candidates(trip: Pick<Trip, 'departure' | 'arrival' | 'alerts'>, rows: ScheduleRow[], siblingArrivals: string[] | null, rule?: Rule909) {
+function candidates(
+  trip: Pick<Trip, 'departure' | 'arrival' | 'alerts'>, rows: ScheduleRow[], siblingArrivals: string[] | null, rule?: Rule909, shares910Row = false,
+) {
   const owned = siblingArrivals?.filter((a, _, all) => a !== trip.arrival && all.indexOf(a) === all.lastIndexOf(a));
-  return sameSlot(trip, rows).filter((r) => !owned?.includes(r.arrival) && !(rule?.not909Rows && r.arrival === rule.theoretical));
+  return sameSlot(trip, rows).filter((r) => !owned?.includes(r.arrival) && !othersRow(trip, r, rule, shares910Row));
+}
+
+// ¿La fila es de otro bus por una de las dos reglas? REGLA DEL 909 DIRECTO: llega a salida + 1:20 y a esa hora sale un
+// 909 directo. REGLA DEL 909 DE RUTA: este bus es un 909 de ruta empatado con un 910, y la fila llega a su hora de
+// samar.es (09:00), así que es la del 910.
+function othersRow(trip: Pick<Trip, 'arrival'>, r: ScheduleRow, rule: Rule909 | undefined, shares910Row: boolean): boolean {
+  return (!!rule?.not909Rows && r.arrival === rule.theoretical) || (shares910Row && r.arrival === trip.arrival);
 }
 
 const toSpanish = (date: string) => date.split('-').reverse().join('/'); // 2026-11-03 → 03/11/2026
@@ -234,7 +248,7 @@ const failed = (r: BusSeats | Failure): r is Failure => 'reason' in r;
 export async function fetchSeats(
   trip: Trip,
   date: string,
-  { fetchImpl = fetch, now = () => new Date(), siblingArrivals = null, alcorconTwin = false, rule909, ambiguous = false, budgetMs = SEATS_BUDGET_MS }: FetchSeatsOptions = {},
+  { fetchImpl = fetch, now = () => new Date(), siblingArrivals = null, alcorconTwin = false, rule909, ambiguous = false, shares910Row = false, budgetMs = SEATS_BUDGET_MS }: FetchSeatsOptions = {},
 ): Promise<SeatsResult> {
   // Un único "cronómetro" para todo el recorrido (todas las sesiones): si se agota, se cancela lo pendiente.
   const budget = AbortSignal.timeout(budgetMs);
@@ -251,19 +265,19 @@ export async function fetchSeats(
   // Dos buses de samar.es con las mismas horas: imposible saber cuál es cuál. Pero si a esa hora no hay ninguna fila
   // que pueda ser suya (15/11, 18:15), es que ninguno está a la venta.
   if (ambiguous) {
-    const any = candidates(trip, rows, siblingArrivals, rule909).length > 0;
+    const any = candidates(trip, rows, siblingArrivals, rule909, shares910Row).length > 0;
     return { ok: false, reason: any ? 'Otro bus de Samar tiene las mismas horas' : 'No aparece en la venta online' };
   }
 
   // Encontrar nuestro bus en la tabla.
-  const picked = pickRow(trip, siblingArrivals ?? [], rows, rule909);
+  const picked = pickRow(trip, siblingArrivals ?? [], rows, rule909, shares910Row);
   // Sin la lista de hermanos (siblingArrivals) solo nos fiamos de una coincidencia exacta.
   if (!picked || (!picked.exact && !siblingArrivals)) {
     // Filas a esa hora que no son de otro bus de samar.es: si no queda ninguna, el bus no está en autobusing;
     // si queda alguna, está pero no se sabe cuál es (y no se arriesga a dar las plazas de otro).
     // (Sin la lista de hermanos, siblingArrivals = null, no se puede descartar nada: «no encontrado».)
     // Que no aparezca no prueba que no se venda online: autobusing esconde los autobuses llenos.
-    const reason = siblingArrivals && candidates(trip, rows, siblingArrivals, rule909).length > 0
+    const reason = siblingArrivals && candidates(trip, rows, siblingArrivals, rule909, shares910Row).length > 0
       ? 'No se sabe qué fila de autobusing es la suya'
       : 'No aparece en la venta online';
     return { ok: false, reason };

@@ -98,6 +98,9 @@ Las plazas solo existen en el motor de venta, así que se recorre su flujo con u
   - las filas que sobran a una hora (07:15 y 12:25 de los sábados) van al único bus de esa hora que no es 909 directo, como un autobús más de su refuerzo.
 
   Para quitarla, `DIRECT_909_RULE = false` en `lib/rules.ts`: todo vuelve a funcionar como antes (hay un test que lo comprueba en todos los fixtures).
+- **Regla del 909 de ruta, o de la fila de las 08:45** (experimental). Entre semana, a las 07:00 salen el 909 de ruta y el 910, los dos → 09:00 en samar.es. autobusing tiene una fila 09:00 y otra 08:45, y la 08:45 solo está los días en que sale el 909 de ruta. Con la regla, la 09:00 es del 910 y el 909 de ruta recibe la 08:45 (antes, los dos «no disponible»). Si no hay fila 08:45, el 909 de ruta dice «No aparece en la venta online» en vez de recibir la del 910. La pista de compra del 909 de ruta avisa de que la fila 07:00 → 09:00 es la del 910.
+
+  Para quitarla, `RUTA_909_RULE = false` en `lib/rules.ts`: los dos vuelven a ser ambiguos, como antes (también con un test sobre todos los fixtures).
 
 ### Comprar
 

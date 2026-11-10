@@ -16,7 +16,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Direction, TripsResponse } from '../lib/samar.ts';
 import { madridTime } from '../lib/calendar.ts';
-import { KIND_LABEL, MAX_DAYS_AHEAD, addDays, alcorconTwin, searchDate, shares909Row, todayMadrid, tripKind, type TripKind } from '../lib/rules.ts';
+import { KIND_LABEL, MAX_DAYS_AHEAD, addDays, alcorconTwin, rowOwner, searchDate, todayMadrid, tripKind, type TripKind } from '../lib/rules.ts';
 import AlertIcon from './AlertIcon.tsx';
 import DatePicker from './DatePicker.tsx';
 import TripCard from './TripCard.tsx';
@@ -308,7 +308,7 @@ export default function SearchApp() {
                 <ul className="trips">
                   {visible.map((t, i) => (
                     <li key={t.expedition} style={{ '--i': Math.min(i, STAGGER_MAX) }}>
-                      <TripCard trip={t} dir={done.dir} date={done.date} hideItinerary={hideItinerary} alcorconTwin={alcorconTwin(t, done.data.trips)} shares909Row={shares909Row(t, done.data.trips)} />
+                      <TripCard trip={t} dir={done.dir} date={done.date} hideItinerary={hideItinerary} alcorconTwin={alcorconTwin(t, done.data.trips)} rowOwner={rowOwner(t, done.data.trips)} />
                     </li>
                   ))}
                 </ul>

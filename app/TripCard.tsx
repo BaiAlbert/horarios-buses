@@ -6,7 +6,7 @@
 import { memo, useState } from 'react';
 import type { Direction, Trip } from '../lib/samar.ts';
 import type { SeatsResult, SeveralBus } from '../lib/autobusing.ts';
-import { KIND_LABEL, buyUrl, onlyToAlcorcon, tripKind } from '../lib/rules.ts';
+import { KIND_LABEL, buyUrl, onlyToAlcorcon, tripKind, type RowOwner } from '../lib/rules.ts';
 import { formatDuration, madridTime } from '../lib/calendar.ts';
 import AlertIcon from './AlertIcon.tsx';
 
@@ -84,19 +84,19 @@ function rowMark(trip: Trip, twin: boolean, plural: boolean): string {
 
 // Pista de qué fila elegir en la tabla Horarios de autobusing al comprar. Antes de consultar las plazas usa las
 // horas de samar.es (y la nota de Alcorcón); después, lo que se sabe de autobusing: su hora de llegada, cuántas
-// filas tiene el refuerzo, o que ahora mismo no aparece. `shared909`: este bus tiene las mismas horas que un 909
-// directo, y la fila con esas horas es la del 909 (REGLA DEL 909, ver shares909Row en rules.ts).
-function buyHint(trip: Trip, seats: SeatsState, twin: boolean, shared909: boolean): string {
+// filas tiene el refuerzo, o que ahora mismo no aparece. `owner`: de quién es la fila con las horas de samar.es, si no
+// es de este bus: del directo 909 (REGLA DEL 909 DIRECTO) o del 910 (REGLA DEL 909 DE RUTA). Ver rowOwner en rules.ts.
+function buyHint(trip: Trip, seats: SeatsState, twin: boolean, owner: RowOwner): string {
   const dep = trip.departure;
   // Un bus de Alcorcón se reconoce por la nota, porque autobusing le pone otra hora de llegada (la teórica).
   const before = onlyToAlcorcon(trip)
     ? `En autobusing, elige la fila de las ${dep} que dice ${ALC} (allí puede poner otra hora de llegada).`
-    : shared909
-      ? `En autobusing, la fila de las ${dep} que llega a las ${trip.arrival} es la del directo 909; la de este bus llega a otra hora.`
+    : owner
+      ? `En autobusing, la fila de las ${dep} que llega a las ${trip.arrival} es la del ${owner}; la de este bus llega a otra hora.`
       : `En autobusing, busca la fila de las ${dep} que llega a las ${trip.arrival}${rowMark(trip, twin, false)}.`;
   if (seats.status === 'idle' || seats.status === 'loading') {
     if (onlyToAlcorcon(trip)) return before;
-    return shared909 ? `${before} «Ver plazas libres» te dice cuál es.` : `${before} Si no está, «Ver plazas libres» te dice cuál es.`;
+    return owner ? `${before} «Ver plazas libres» te dice cuál es.` : `${before} Si no está, «Ver plazas libres» te dice cuál es.`;
   }
   if (seats.status === 'error') return before;
   const r = seats.result;
@@ -121,13 +121,13 @@ function buyHint(trip: Trip, seats: SeatsState, twin: boolean, shared909: boolea
 }
 
 // Props que recibe la tarjeta desde SearchApp: el bus, el sentido y la fecha buscados (para pedir las
-// plazas), si hay que ocultar las paradas, si a su misma hora sale otro bus de Alcorcón (alcorconTwin) y si tiene
-// las mismas horas que un 909 directo (shares909Row).
-type Props = { trip: Trip; dir: Direction; date: string; hideItinerary: boolean; alcorconTwin: boolean; shares909Row: boolean };
+// plazas), si hay que ocultar las paradas, si a su misma hora sale otro bus de Alcorcón (alcorconTwin) y
+// de quién es su fila de autobusing si no es suya (rowOwner).
+type Props = { trip: Trip; dir: Direction; date: string; hideItinerary: boolean; alcorconTwin: boolean; rowOwner: RowOwner };
 
 // memo: elegir otra fecha o trayecto en el buscador no vuelve a pintar las tarjetas ya en pantalla
 // (memo hace que el componente solo se repinte si cambian sus props.)
-export default memo(function TripCard({ trip, dir, date, hideItinerary, alcorconTwin, shares909Row }: Props) {
+export default memo(function TripCard({ trip, dir, date, hideItinerary, alcorconTwin, rowOwner }: Props) {
   // Cada tarjeta tiene su propio estado de plazas, independiente de las demás.
   const [seats, setSeats] = useState<SeatsState>({ status: 'idle' });
   const kind = tripKind(trip);
@@ -236,7 +236,7 @@ export default memo(function TripCard({ trip, dir, date, hideItinerary, alcorcon
           <a className="secondary press" href={buyUrl(trip, date)} target="_blank" rel="noopener noreferrer">
             Comprar en autobusing<span className="sr"> (se abre en otra pestaña)</span>
           </a>
-          <p className="note">{buyHint(trip, seats, alcorconTwin, shares909Row)}</p>
+          <p className="note">{buyHint(trip, seats, alcorconTwin, rowOwner)}</p>
         </div>
       </>)}
     </article>

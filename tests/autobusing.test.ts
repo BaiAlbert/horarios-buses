@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { parseResults } from '../lib/samar.ts';
-import { isAmbiguous, rule909, seatsContext, siblingArrivals } from '../lib/rules.ts';
+import { isAmbiguous, rule909, seatsContext, shares910Row, siblingArrivals } from '../lib/rules.ts';
 import { parseOrigenId, parseSchedule, parseSeatMap, fetchSeats, pickRow } from '../lib/autobusing.ts';
 
 const fx = (n: string) => readFileSync(new URL(`./fixtures/${n}`, import.meta.url), 'utf8');
@@ -197,12 +197,13 @@ test('pickRow 16/11 con los llenos ocultos: el 05:45 normal no aparece; el de Al
   assert.deepEqual(pick16(llenos16, '05:00', '06:05'), [false, ['Completo']]);
 });
 
-test('16/11: los dos 07:00→09:00 siguen ambiguos, y todo bus normal recibe al menos una fila', () => {
+// (Con la REGLA DEL 909 DE RUTA apagada, los dos 07:00 → 09:00 son ambiguos; encendida, ver sus tests más abajo.)
+test('16/11 (regla del 909 de ruta apagada): los dos 07:00→09:00 son ambiguos, y todo bus normal recibe al menos una fila', () => {
   const at0700 = nov16.filter((t) => t.departure === '07:00' && t.arrival === '09:00');
   assert.equal(at0700.length, 2);
-  assert.ok(at0700.every((t) => isAmbiguous(t, nov16)));
+  assert.ok(at0700.every((t) => isAmbiguous(t, nov16, true, false)));
   const sinFila = ['10:30', '11:15', '18:15', '18:30'];
-  const normales = nov16.filter((t) => !isAmbiguous(t, nov16) && t.line !== '907' && !sinFila.includes(t.departure));
+  const normales = nov16.filter((t) => !isAmbiguous(t, nov16, true, false) && t.line !== '907' && !sinFila.includes(t.departure));
   const huerfanos = normales.filter((t) => !pickRow(t, siblingArrivals(t, nov16), full17)).map((t) => `${t.departure}-${t.arrival}`);
   assert.deepEqual(huerfanos, []);
 });
@@ -355,9 +356,10 @@ const rows28 = parseSchedule(fx('ab-horarios-vuelta-2026-11-28.html'));
 const rows29 = parseSchedule(fx('ab-horarios-vuelta-2026-11-29.html'));
 const byLine = (all: typeof sat, dep: string, l: string) => all.find((t) => t.departure === dep && t.line === l)!;
 // Lo que recibe cada bus: «ambiguo», las llegadas de sus filas (y si es exacta) o «—».
-const outcome = (t: (typeof sat)[number], all: typeof sat, rows: typeof rows28, on = true) => {
-  if (isAmbiguous(t, all, on)) return 'ambiguo';
-  const p = pickRow(t, siblingArrivals(t, all), rows, rule909(t, all, on));
+// `on`: regla del 909 directo; `onRuta`: regla del 909 de ruta (las dos encendidas por defecto).
+const outcome = (t: (typeof sat)[number], all: typeof sat, rows: typeof rows28, on = true, onRuta = true) => {
+  if (isAmbiguous(t, all, on, onRuta)) return 'ambiguo';
+  const p = pickRow(t, siblingArrivals(t, all), rows, rule909(t, all, on), shares910Row(t, all, onRuta));
   return p ? `${p.exact ? 'exacta' : 'descarte'} ${p.rows.map((r) => r.arrival).join(',')}` : '—';
 };
 
@@ -376,32 +378,74 @@ test('REGLA DEL 909, 28/11: la fila sobrante va al único bus de su hora que no 
 });
 
 // Todos los buses de todos los fixtures, con la regla encendida y apagada: solo pueden cambiar estos.
-test('REGLA DEL 909: en todos los fixtures, solo cambian los buses previstos', () => {
-  const pairs: [string, string, string][] = [
+// Todos los pares samar.es + tabla de autobusing de los fixtures.
+const allPairs: [string, string, string][] = [
     ['03/11 ida', 'samar-ida-2026-11-03.html', 'ab-horarios-ida-2026-11-03.html'],
     ['06/11', 'samar-vuelta-2026-11-06.html', 'ab-horarios-vuelta-2026-11-06.html'],
     ['16/11', 'samar-vuelta-2026-11-16.html', 'ab-horarios-vuelta-2026-11-17.html'],
     ['16/11 llenos', 'samar-vuelta-2026-11-16.html', 'ab-horarios-vuelta-2026-11-16-llenos.html'],
     ['28/11', 'samar-vuelta-2026-11-28.html', 'ab-horarios-vuelta-2026-11-28.html'],
+    ['13/11', 'samar-vuelta-2026-11-13.html', 'ab-horarios-vuelta-2026-11-13.html'],
+    ['15/11', 'samar-vuelta-2026-11-15.html', 'ab-horarios-vuelta-2026-11-15.html'],
     ['29/11', 'samar-vuelta-2026-11-29.html', 'ab-horarios-vuelta-2026-11-29.html'],
-  ];
+];
+// Qué buses cambian al apagar una regla: «día hora línea: apagada → encendida».
+function changedBy(off: (t: (typeof sat)[number], all: typeof sat, rows: typeof rows28) => string): string[] {
   const changed: string[] = [];
-  for (const [day, s, a] of pairs) {
+  for (const [day, s, a] of allPairs) {
     const all = parseResults(fx(s)).trips;
     const rows = parseSchedule(fx(a));
     for (const t of all) {
-      const [on, off] = [outcome(t, all, rows), outcome(t, all, rows, false)];
-      if (on !== off) changed.push(`${day} ${t.departure} ${t.line}: ${off} → ${on}`);
+      const [on, o] = [outcome(t, all, rows), off(t, all, rows)];
+      if (on !== o) changed.push(`${day} ${t.departure} ${t.line}: ${o} → ${on}`);
     }
   }
-  assert.deepEqual(changed, [
+  return changed;
+}
+
+test('REGLA DEL 909: en todos los fixtures, solo cambian los buses previstos', () => {
+  assert.deepEqual(changedBy((t, all, rows) => outcome(t, all, rows, false)), [
     '28/11 05:15 910: exacta 07:05,07:05 → descarte 07:05,07:15,07:05',
     '28/11 09:00 909: ambiguo → exacta 10:20',
     '28/11 09:00 905: ambiguo → descarte 10:50',
     '28/11 10:30 910: exacta 12:30 → descarte 12:30,12:25',
+    '15/11 19:00 909: ambiguo → exacta 20:20',
+    '15/11 19:00 905: ambiguo → —',
     '29/11 19:00 909: ambiguo → exacta 20:20',
     '29/11 19:00 905: ambiguo → —',
   ]);
+});
+
+// REGLA DEL 909 DE RUTA: solo cambian los 07:00 entre semana (el 909 de ruta y el 910 dejan de ser ambiguos).
+test('REGLA DEL 909 DE RUTA: en todos los fixtures, solo cambian los buses previstos', () => {
+  const expected = ['06/11', '16/11', '16/11 llenos', '13/11'].flatMap((d) => [
+    `${d} 07:00 909: ambiguo → descarte 08:45`,
+    `${d} 07:00 910: ambiguo → exacta 09:00`,
+  ]);
+  assert.deepEqual(changedBy((t, all, rows) => outcome(t, all, rows, true, false)), expected);
+});
+
+test('fetchSeats, REGLA DEL 909 DE RUTA: 13/11 a las 07:00, el 909 de ruta recibe la fila 08:45 y el 910 la 09:00', async () => {
+  for (const [e, nromov, matched] of [['909519', '4126334', { matchedArrival: '08:45' }], ['910503', '4126333', {}]] as const) {
+    const { calls, fetchImpl } = fakeAutobusing({
+      horarios: 'ab-horarios-vuelta-2026-11-13.html',
+      plazasHtml: fx('ab-plazas-0730.html').replace('03/11/2026 07:30', '13/11/2026 07:00'),
+    });
+    const t = exp(nov13, e);
+    const r = await fetchSeats(t, '2026-11-13', { fetchImpl, ...seatsContext(t, nov13), now: () => new Date('2026-11-09T12:00:00Z') });
+    assert.deepEqual(r, { ok: true, kind: 'count', free: 31, occupied: 19, total: 50, checkedAt: '2026-11-09T12:00:00.000Z', ...matched }, e);
+    assert.equal(new URLSearchParams(picksOf(calls)[0].body).get('venta[nromov_ida]'), nromov);
+  }
+});
+
+// Si el 909 de ruta no está (lleno u oculto), no se le da la fila 09:00 del 910: «No aparece».
+test('fetchSeats, REGLA DEL 909 DE RUTA: sin la fila 08:45, el 909 de ruta «No aparece» (no recibe la del 910)', async () => {
+  const horariosHtml = fx('ab-horarios-vuelta-2026-11-13.html').replace(/<tr>(?:(?!<\/tr>)[\s\S])*?4126334[\s\S]*?<\/tr>/, '');
+  assert.ok(!horariosHtml.includes('4126334'));
+  const { calls, fetchImpl } = fakeAutobusing({ horariosHtml });
+  const t = exp(nov13, '909519');
+  assert.deepEqual(await fetchSeats(t, '2026-11-13', { fetchImpl, ...seatsContext(t, nov13) }), { ok: false, reason: 'No aparece en la venta online' });
+  assert.equal(picksOf(calls).length, 0);
 });
 
 test('fetchSeats, REGLA DEL 909: 905 de las 09:00 del 28/11 → plazas de la fila 10:50, con matchedArrival', async () => {
@@ -447,7 +491,7 @@ test('13/11, 05:45: el normal recibe su fila (Completo) y el de Alcorcón «No a
 });
 
 test('13/11: dos buses con las mismas horas y filas a esa hora → «Otro bus de Samar tiene las mismas horas»', async () => {
-  for (const e of ['909519', '910503', '901501', '902502']) { // 07:00 → 09:00 (filas 09:00 y 08:45) y 11:15 → 13:10 (fila 13:10)
+  for (const e of ['901501', '902502']) { // 11:15 → 13:10 (una sola fila 13:10)
     assert.deepEqual(await seats13(e), { ok: false, reason: 'Otro bus de Samar tiene las mismas horas' }, e);
   }
 });

@@ -71,10 +71,11 @@ const sameSlot = (t: Trip, o: Trip) =>
   o.expedition !== t.expedition && o.departure === t.departure && onlyToAlcorcon(o) === onlyToAlcorcon(t);
 
 // ¿Hay OTRO bus que salga y llegue exactamente a la misma hora (y con la misma marca)? Entonces es imposible
-// saber cuál de las filas de autobusing es la suya, y no se consultan sus plazas. Excepción (REGLA DEL 909, más
-// abajo): un 909 directo y otro bus que no lo es, los dos a salida + 1:20, sí se distinguen.
-export function isAmbiguous(t: Trip, all: Trip[], on = DIRECT_909_RULE): boolean {
-  return all.some((o) => sameSlot(t, o) && o.arrival === t.arrival && !(on && splitBy909(t, o)));
+// saber cuál de las filas de autobusing es la suya, y no se dan sus plazas. Dos excepciones, más abajo, que se
+// pueden apagar por separado: `on` (REGLA DEL 909 DIRECTO: un 909 directo y otro bus, los dos a salida + 1:20) y
+// `onRuta` (REGLA DEL 909 DE RUTA: un 909 de ruta y un 910). En esos casos sí se sabe qué fila es de cada uno.
+export function isAmbiguous(t: Trip, all: Trip[], on = DIRECT_909_RULE, onRuta = RUTA_909_RULE): boolean {
+  return all.some((o) => sameSlot(t, o) && o.arrival === t.arrival && !(on && splitBy909(t, o)) && !(onRuta && splitRuta909(t, o)));
 }
 
 // REGLA DEL 909 DIRECTO (añadida tras revisar a mano el sábado 28/11). Para quitarla: DIRECT_909_RULE = false.
@@ -117,6 +118,38 @@ export function shares909Row(t: Trip, all: Trip[], on = DIRECT_909_RULE): boolea
   return on && !isDirect909(t) && all.some((o) => sameSlot(t, o) && o.arrival === t.arrival && splitBy909(t, o));
 }
 
+// REGLA DEL 909 DE RUTA, o «de la fila de las 08:45» (añadida tras la revisión manual del 13/11). Para quitarla:
+// RUTA_909_RULE = false.
+// Entre semana, a las 07:00 salen en samar.es un 909 de ruta (Santa Olalla, Valmojado, Móstoles, Alcorcón) y un 910,
+// los dos → 09:00. autobusing tiene a esa hora, además de las del 909 directo, una fila 09:00 y otra 08:45. La 08:45
+// solo está los días en que sale el 909 de ruta (los laborables del 06/11 al 10/12); los sábados y domingos el 910
+// sale solo y autobusing no la tiene. Así que la fila con la hora de samar.es (09:00) es la del 910, y el 909 de ruta
+// va por descarte: recibe la fila que sobra (08:45). Es una deducción: autobusing no dice la línea.
+// - El 910 se queda sus filas exactas (09:00), como siempre.
+// - El 909 de ruta no puede recibir las filas que llegan a su hora de samar.es: son del 910. Si no le queda ninguna
+//   (el 08:45 lleno u oculto), «No aparece en la venta online», en vez de darle las plazas del 910.
+// Con la regla apagada, los dos vuelven a ser «ambiguos», como antes.
+export const RUTA_909_RULE = true;
+
+const isRuta909 = (t: Trip) => t.line === '909' && !isDirect(t);
+
+// Un 909 de ruta y un 910 (en cualquier orden): no son ambiguos entre sí aunque tengan las mismas horas.
+const splitRuta909 = (t: Trip, o: Trip) => (isRuta909(t) && o.line === '910') || (t.line === '910' && isRuta909(o));
+
+// ¿`t` es un 909 de ruta con las mismas horas que un 910? Entonces las filas que llegan a su hora de samar.es son del
+// 910: pickRow no se las da, y la pista de compra lo dice.
+export function shares910Row(t: Trip, all: Trip[], on = RUTA_909_RULE): boolean {
+  return on && isRuta909(t) && all.some((o) => sameSlot(t, o) && o.arrival === t.arrival && o.line === '910');
+}
+
+// De qué bus es la fila de autobusing con las horas de samar.es de `t`, si no es de `t` (lo usa la pista de compra):
+// del 909 directo (REGLA DEL 909 DIRECTO), del 910 (REGLA DEL 909 DE RUTA) o de nadie más (null).
+export type RowOwner = 'directo 909' | '910' | null;
+export function rowOwner(t: Trip, all: Trip[]): RowOwner {
+  if (shares909Row(t, all)) return 'directo 909';
+  return shares910Row(t, all) ? '910' : null;
+}
+
 // ¿`t` es un bus normal que sale a la misma hora que otro de Alcorcón? Entonces en autobusing hay a esa hora una
 // fila con la nota de Alcorcón que NO es la suya (y puede tener sus mismas horas), y la pista de compra lo dice.
 export function alcorconTwin(t: Trip, all: Trip[]): boolean {
@@ -131,8 +164,15 @@ export function siblingArrivals(t: Trip, all: Trip[]): string[] {
 // Todo lo que /api/seats le pasa a fetchSeats sobre los demás buses de samar.es de ese día, junto en un objeto para
 // que no se pueda olvidar nada (sin rule909, el 905 de las 09:00 de los sábados recibiría la fila del 909).
 // `ambiguous`: no se sabe qué fila es la suya, pero fetchSeats aún mira si a esa hora hay alguna (si no, «No aparece»).
+// `shares910Row`: REGLA DEL 909 DE RUTA (las filas a su hora de samar.es son del 910).
 export function seatsContext(t: Trip, all: Trip[]) {
-  return { siblingArrivals: siblingArrivals(t, all), alcorconTwin: alcorconTwin(t, all), rule909: rule909(t, all), ambiguous: isAmbiguous(t, all) };
+  return {
+    siblingArrivals: siblingArrivals(t, all),
+    alcorconTwin: alcorconTwin(t, all),
+    rule909: rule909(t, all),
+    ambiguous: isAmbiguous(t, all),
+    shares910Row: shares910Row(t, all),
+  };
 }
 export type SeatsContext = ReturnType<typeof seatsContext>;
 
