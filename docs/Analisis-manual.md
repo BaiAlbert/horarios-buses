@@ -1,0 +1,125 @@
+# Analisis manual de resultados
+Esto es lo que he recopilado durante un analisis manual de los resultados. Todos los informes son en el trayecto Talavera -> Madrid Estación Sur. ¿Que he hecho durante el analisis? He consultado nuestra pagina web que estamos desarrollando para el trayecto que mencioné y el dia de viaje segun el informe, he apuntado todos los buses que devuelve nuestra pagina, y he comprobado la correlacion entre nuestra pagina y autobusing.es, siendo la mayor prueba de correlacion el correcto funcionamiento del boton "Ver plazas libres".
+
+## Informe de analisis del dia 13/11/2026:
+    * 05:00->06:05 (Linea 909) = Correcto
+    * 05:15->06:35 (Linea 909) = Correcto
+    * 05:15->07:05 (Linea 910) = Correcto
+    * 05:45->07:05 (Linea 909) = Nuestra pagina dice "Plazas no disponibles (No se distingue el bus de Alcorcón en autobusing)" mientras que en autobusing solo hay 1 bus que sale a las 05:45 (este) y solo hay 1 bus con el aviso de que solo llega hasta Alcorcón (el de 05:00->06:20). Tambien dice "En autobusing, busca la fila de las 05:45 que llega a las 07:05 (la que no dice «solo llega hasta Alcorcón»)." lo cual es correcto, entonces si es capaz de pillar eso bien ¿porque no puede encontrarlo en autobusin para ver que esta completo?
+    * 05:45->06:50 (Linea 909) = No aparece ningun bus en autobusing con este horario, y otra vez repito, solo hay 1 bus en autobusing con el aviso de Alcorcón (el que llega a las 06:20).
+    * 06:00->07:20 (Linea 909) = Correcto
+    * 06:00->07:50 (Linea 910) = Correcto
+    * 06:30->07:50 (Linea 909) = Correcto
+    * 07:00->08:20 (Linea 909) = Correcto
+    * 07:00->09:00 (Linea 909) = Nuestra pagina dice "Plazas no disponibles (Varios buses salen y llegan a la misma hora)" lo cual no es del todo cierto, en autobusing aparece uno con este horario y despues otro que sale a la misma hora y llega a las 08:45.
+    * 07:00->09:00 (Linea 910) = Nuestra pagina dice "Plazas no disponibles (Varios buses salen y llegan a la misma hora)" lo cual no es del todo cierto, en autobusing aparece uno con este horario y despues otro que sale a la misma hora y llega a las 08:45.
+    * 08:00->09:20 (Linea 909) = Correcto
+    * 08:30->09:50 (Linea 909) = Correcto
+    * 09:00->10:20 (Linea 909) = Correcto
+    * 09:15->12:25 (Linea 907) = Correcto (No se vende online)
+    * 09:30->11:20 (Linea 910) = Correcto
+    * 10:15->11:35 (Linea 904) = Correcto
+    * 10:30->12:00 (Linea 905) = Nuestra pagina dice "Plazas no disponibles (No aparece en la venta online)", lo cual parece correcto segun he visto
+    * 10:30->11:50 (Linea 909) = Correcto
+    * 10:30->12:30 (Linea 910) = Correcto
+    * 11:00->12:20 (Linea 909) = Correcto
+    * 11:15->13:10 (Linea 901) = Nuestra pagina dice "Plazas no disponibles (Varios buses salen y llegan a la misma hora)", pero en autobusing solo aparece 1 bus con este horario.
+    * 11:15->13:10 (Linea 902) = Nuestra pagina dice "Plazas no disponibles (Varios buses salen y llegan a la misma hora)", pero en autobusing solo aparece 1 bus con este horario.
+    * 11:15->13:15 (Linea 903) = Nuestra pagina dice "Plazas no disponibles (Varias filas posibles en autobusing)" pero en autobusing no hay ningun bus con este horario exacto, lo mas cercano es el de 11:15->13:10 que aparece en autobusing, pero en dicha situacion tendriamos el mismo problema que con los 2 anteriores.
+    * 11:45->14:55 (Linea 907) = Correcto (No se vende online)
+    * 12:30->13:50 (Linea 909) = Correcto
+    * 12:30->14:20 (Linea 910) = Correcto
+    * 13:00->14:20 (Linea 909) = Correcto
+    * 14:00->15:20 (Linea 909) = Correcto
+    * 14:00->16:00 (Linea 910) = Correcto
+    * 15:00->16:20 (Linea 909) = Correcto
+    * 16:00->17:20 (Linea 909) = Correcto
+    * 16:00->17:35 (Linea 904) = Correcto. Nuestra pagina dice "Plazas no disponibles (No aparece en la venta online)" lo cual es cierto, ni siquiera hay algun bus con horario parecido, a lo mucho, se me puede ocurrir que sea algun refuerzo para el de 16:00->17:20.
+    * 17:00->20:20 (Linea 907) = Correcto (No se vende online)
+    * 17:00->18:20 (Linea 909) = Correcto
+    * 17:00->19:00 (Linea 910) = Correcto
+    * 18:00->19:20 (Linea 909) = Correcto
+    * 18:15->20:15 (Linea 902) = Correcto. Nuestra pagina dice "Plazas no disponibles (No aparece en la venta online)" lo cual es cierto, no hay siquiera algun bus con horario parecido ni nada.
+    * 18:15->20:00 (Linea 903) = Correcto. Nuestra pagina dice "Plazas no disponibles (No aparece en la venta online)" lo cual es cierto, no hay siquiera algun bus con horario parecido ni nada.
+    * 18:30->20:15 (Linea 901) = Correcto. Nuestra pagina dice "Plazas no disponibles (No aparece en la venta online)" lo cual es cierto, no hay siquiera algun bus con horario parecido ni nada.
+    * 19:30->20:50 (Linea 909) = Correcto
+    * 19:30->21:20 (Linea 910) = Correcto
+    * 20:30->21:50 (Linea 909) = Correcto
+    * 20:30->22:25 (Linea 910) = Correcto
+    * 21:00->22:20 (Linea 909) = Correcto
+    * 22:00->23:20 (Linea 909) = Correcto
+    * 22:45->00:05 (Linea 909) = Correcto
+    * 23:00->01:00 (Linea 910) = Correcto
+
+## Informe de analisis del dia 14/11/2026:
+    * 05:15->06:35 (Linea 909) = Correcto
+    * 05:15->07:05 (Linea 910) = Correcto
+    * 07:00->08:20 (Linea 909) = Correcto
+    * 07:00->09:00 (Linea 910) = Correcto
+    * 07:30->08:50 (Linea 909) = Correcto
+    * 08:00->09:20 (Linea 909) = Correcto
+    * 09:00->10:20 (Linea 909) = Correcto 
+    * 09:00->10:20 (Linea 905) = Correcto. Identifica bien que es el que llega a las 10:50.
+    * 10:00->11:20 (Linea 909) = Correcto
+    * 10:30->11:50 (Linea 909) = Correcto
+    * 10:30->12:30 (Linea 910) = Correcto
+    * 11:15->13:10 (Linea 901) = Correcto
+    * 11:15->13:15 (Linea 903) = Nuestra pagina dice "Plazas no disponibles (No aparece en la venta online)", lo cual es correcto pero a la vez quiero pensar que es algun refuerzo para el bus que llega a las 13:10.
+    * 11:45->14:55 (Linea 907) = Correcto (No se vende online)
+    * 11:45->13:10 (Linea 902) = Correcto. Nuestra pagina dice "Plazas no disponibles (No aparece en la venta online)" lo cual es cierto, no hay siquiera algun bus con horario parecido ni nada.
+    * 12:00->13:20 (Linea 909) = Correcto
+    * 12:30->13:50 (Linea 909) = Correcto
+    * 12:30->14:20 (Linea 910) = Correcto
+    * 13:00->14:20 (Linea 909) = Correcto
+    * 13:45->17:05 (Linea 907) = Correcto (No se vende online)
+    * 14:00->15:20 (Linea 909) = Correcto
+    * 14:00->16:00 (Linea 910) = Correcto
+    * 15:00->16:20 (Linea 909) = Correcto
+    * 16:00->17:20 (Linea 909) = Correcto
+    * 17:00->18:20 (Linea 909) = Correcto
+    * 17:00->19:00 (Linea 910) = Correcto
+    * 17:15->20:20 (Linea 907) = Correcto (No se vende online)
+    * 18:00->19:20 (Linea 909) = Correcto
+    * 19:00->20:30 (Linea 904) = Nuestra pagina dice "Plazas no disponibles (No aparece en la venta online)", lo cual es correcto pero a la vez quiero pensar que es algun refuerzo para el bus que llega a las 20:20.
+    * 19:00->20:20 (Linea 909) = Correcto
+    * 19:30->21:20 (Linea 910) = Correcto
+    * 20:00->21:20 (Linea 909) = Correcto
+    * 20:15->22:15 (Linea 902) = Correcto. Nuestra pagina dice "Plazas no disponibles (No aparece en la venta online)" lo cual es cierto, no hay siquiera algun bus con horario parecido ni nada.
+    * 20:15->22:00 (Linea 903) = Correcto. Nuestra pagina dice "Plazas no disponibles (No aparece en la venta online)" lo cual es cierto, no hay siquiera algun bus con horario parecido ni nada.
+    * 21:00->23:00 (Linea 910) = Correcto
+    * 22:00->23:20 (Linea 909) = Correcto
+    
+## Informe de analisis del dia 15/11/2026:
+    * 05:15->06:35 (Linea 909) = Correcto
+    * 05:15->07:00 (Linea 910) = Correcto
+    * 07:00->08:20 (Linea 909) = Correcto
+    * 07:00->09:00 (Linea 910) = Correcto
+    * 08:00->09:20 (Linea 909) = Correcto
+    * 09:30->11:20 (Linea 910) = Correcto
+    * 09:30->10:50 (Linea 909) = Correcto
+    * 10:30->11:50 (Linea 909) = Correcto
+    * 10:30->12:30 (Linea 910) = Correcto
+    * 12:00->13:20 (Linea 909) = Correcto
+    * 12:30->13:50 (Linea 909) = Correcto
+    * 12:30->14:20 (Linea 910) = Correcto
+    * 14:00->15:20 (Linea 909) = Correcto
+    * 14:00->16:00 (Linea 910) = Correcto
+    * 14:30->15:50 (Linea 909) = Correcto
+    * 15:00->16:20 (Linea 909) = Correcto
+    * 16:00->17:20 (Linea 909) = Correcto
+    * 17:00->18:20 (Linea 909) = Correcto
+    * 17:00->19:00 (Linea 910) = Correcto
+    * 18:00->19:20 (Linea 909) = Correcto
+    * 18:15->20:15 (Linea 902) = Nuestra pagina dice "Plazas no disponibles (Varios buses salen y llegan a la misma hora)" pero en autobusing no hay ningun bus con hora de salida 18:15.
+    * 18:15->20:15 (Linea 903) = Nuestra pagina dice "Plazas no disponibles (Varios buses salen y llegan a la misma hora)" pero en autobusing no hay ningun bus con hora de salida 18:15.
+    * 18:30->20:15 (Linea 901) = Correcto. Nuestra pagina dice "Plazas no disponibles (No aparece en la venta online)" lo cual es cierto, no hay siquiera algun bus con horario parecido ni nada.
+    * 19:00->20:30 (Linea 904) = Nuestra pagina dice "Plazas no disponibles (No aparece en la venta online)", lo cual es correcto pero a la vez quiero pensar que es algun refuerzo para el bus que llega a las 20:20.
+    * 19:00->20:20 (Linea 909) = Correcto
+    * 19:00->20:20 (Linea 905) = Nuestra pagina dice "Plazas no disponibles (No aparece en la venta online)" aunque en autobusing si hay 1 bus con ese mismo horario, pero quiero pensar que el que aparece en autobusing debe ser el de la linea 909 (a lo mejor samar vende los tickets para este bus cuando el de la linea 909 esté lleno, esto es una suposición).
+    * 19:30->21:20 (Linea 910) = Correcto
+    * 20:00->21:20 (Linea 909) = Correcto
+    * 21:00->22:20 (Linea 909) = Correcto
+    * 23:00->01:00 (Linea 910) = Correcto
+    
+## Informe de analisis del dia 25/12/2026:
+El dia viernes 25 de diciembre (Navidad) devuelve el mismo numero de resultados que el viernes 13 de noviembre que ya comprobé completamente, por lo que supongo que son los mismos resultados
