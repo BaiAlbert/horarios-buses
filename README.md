@@ -81,24 +81,27 @@ Una sola petición `GET` por trayecto y fecha a la página pública de resultado
 
 ### Plazas (autobusing)
 
-Las plazas solo existen en el motor de venta, así que se recorre su flujo con una sesión: `inicio_info` → `inicio` → `horarios` → selección → `plazas`. Son 5 peticiones por bus, por eso solo se hacen **bajo demanda** y se guardan **5 minutos**.
+Las plazas solo existen en el motor de venta, así que se recorre su flujo con una sesión: `inicio_info` → `inicio` → `horarios` → selección → `plazas`. Son 5 peticiones por bus, por eso solo se hacen **bajo demanda** y se guardan **5 minutos**. El flujo va **sin la hora**, igual que el enlace de compra: así autobusing no elige ningún bus por su cuenta y la sesión solo tiene el que selecciona la web.
 
 - **Nunca pasa del paso «Plazas».** No rellena datos ni compra nada.
 - Los códigos de parada y las horas salen siempre de los horarios de samar.es que ya están en caché, **nunca del cliente**.
 - autobusing no da ni línea ni número de expedición, así que el bus se empareja **por hora de salida y de llegada**, o por descarte entre los que salen a la misma hora. La web comprueba además que la página de plazas es de la fecha y la hora pedidas.
 - **Alcorcón.** Algunos buses de Talavera a Madrid solo llegan hasta Alcorcón. Las dos webs lo dicen (samar.es en un aviso, autobusing en una nota de la fila), y un bus solo se empareja con filas que tengan su misma marca. Así el 05:45 normal y el 05:45 de Alcorcón no se mezclan, aunque en autobusing los dos digan 05:45 → 07:05. Si ninguna fila del día lleva la nota, la web no se fía y dice «No se distingue el bus de Alcorcón en autobusing» (quizá autobusing cambió su página).
-- **Dos buses con las mismas horas** en samar.es (el 909 de ruta y el 910 de las 07:00 entre semana): no se dan plazas, porque no se sabe cuál es cuál («Otro bus de Samar tiene las mismas horas»). Pero se mira autobusing: si a esa hora no hay ninguna fila, dice «No aparece en la venta online».
+- **Dos buses con las mismas horas** en samar.es (el 901 y el 902 de las 11:15 entre semana): no se dan plazas, porque no se sabe cuál es cuál («Otro bus de Samar tiene las mismas horas»). Pero se mira autobusing: si a esa hora no hay ninguna fila, dice «No aparece en la venta online».
 - autobusing da llegadas teóricas (los directos, siempre salida + 1 h 20) y **esconde los autobuses llenos**. Por eso, si no hay fila, la tarjeta dice «No aparece en la venta online», que puede ser que esté completo.
 - Ante la duda, dice **«Plazas no disponibles»** con el motivo, antes que enseñar el dato de otro bus.
+- **Fallos del momento** (autobusing no acepta la selección, la página de plazas es de otra hora, la tabla de horarios no se puede leer): «No se pudo consultar», con «Reintentar». No se guardan en la caché y quedan en los logs.
+- **Días sin venta.** En algunos festivos y en fechas lejanas, autobusing responde «No hay servicios vigentes para esa fecha»: la tarjeta dice «autobusing no tiene venta para este día».
+- **Buses que ya han salido.** Buscando hoy, un bus cuya hora de salida ya pasó dice «Este bus ya ha salido.» y no tiene ni plazas ni compra (autobusing deja de listarlo).
 - Distingue entre plazas con cifra, «Completo» y «Quedan plazas» (buses sin elección de asiento que no están completos).
 - **Refuerzos.** Si un horario lleva varios autobuses (varias filas idénticas en autobusing), enseña las plazas de cada uno por separado. Cada fila se consulta con su propia sesión, porque la página de plazas no dice qué fila se eligió.
-- **Refuerzos por descarte.** Si a una hora sobran filas que no coinciden con ningún bus de samar.es y solo queda un bus sin pareja, se le asignan todas (hasta 3), aunque lleguen a otras horas (05:15 → 07:05 en samar.es, 07:10 y 07:15 en autobusing). La tarjeta dice la llegada de cada uno y avisa de que puede que no hagan el mismo recorrido.
+- **Refuerzos por descarte.** Si a una hora sobran filas que no coinciden con ningún bus de samar.es y solo queda un bus sin pareja, se le asignan todas (hasta 3), aunque lleguen a otras horas (05:15 → 07:05 en samar.es, 07:10 y 07:15 en autobusing). La tarjeta dice la llegada de cada uno y avisa de que puede que no hagan el mismo recorrido. Se cuentan buses y filas: si dos buses llegan a la misma hora y solo hay una fila con esa llegada, uno está sin pareja y no se reparte nada. Un bus que sale solo a su hora y tiene su fila exacta no se queda las demás filas de esa hora: pueden ser de un autobús que samar.es no lista.
 - **Regla del 909 directo** (experimental). autobusing pone a los 909 directos la llegada salida + 1:20, así que esa fila es del 909 y las demás de esa hora no. Con ella:
   - el 909 y el 905 de las 09:00 de los sábados, que en samar.es llegan los dos a las 10:20, ya no son «no disponible»: el 909 recibe la fila 10:20 y el 905 la 10:50;
   - las filas que sobran a una hora (07:15 y 12:25 de los sábados) van al único bus de esa hora que no es 909 directo, como un autobús más de su refuerzo.
 
   Para quitarla, `DIRECT_909_RULE = false` en `lib/rules.ts`: todo vuelve a funcionar como antes (hay un test que lo comprueba en todos los fixtures).
-- **Regla del 909 de ruta, o de la fila de las 08:45** (experimental). Entre semana, a las 07:00 salen el 909 de ruta y el 910, los dos → 09:00 en samar.es. autobusing tiene una fila 09:00 y otra 08:45, y la 08:45 solo está los días en que sale el 909 de ruta. Con la regla, la 09:00 es del 910 y el 909 de ruta recibe la 08:45 (antes, los dos «no disponible»). Si no hay fila 08:45, el 909 de ruta dice «No aparece en la venta online» en vez de recibir la del 910. La pista de compra del 909 de ruta avisa de que la fila 07:00 → 09:00 es la del 910.
+- **Regla del 909 de ruta, o de la fila de las 08:45** (experimental; solo vale a las 07:00 desde Talavera, que es donde se observó). Entre semana, a las 07:00 salen el 909 de ruta y el 910, los dos → 09:00 en samar.es. autobusing tiene una fila 09:00 y otra 08:45, y la 08:45 solo está los días en que sale el 909 de ruta. Con la regla, la 09:00 es del 910 y el 909 de ruta recibe la 08:45 (antes, los dos «no disponible»). Si no hay fila 08:45, el 909 de ruta dice «No aparece en la venta online» en vez de recibir la del 910. La pista de compra del 909 de ruta avisa de que la fila 07:00 → 09:00 es la del 910.
 
   Para quitarla, `RUTA_909_RULE = false` en `lib/rules.ts`: los dos vuelven a ser ambiguos, como antes (también con un test sobre todos los fixtures).
 
@@ -134,6 +137,7 @@ Estilo «cristal líquido» (iOS/macOS) con animaciones de muelle en CSS puro (`
   - Si solo coincide la salida, y no hay otro bus de Samar a esa hora, se muestran con un aviso.
   - Si autobusing marca el bus como «Completo», se indica que no quedan plazas.
   - Algunos buses, sobre todo de ruta, no tienen elección de asiento en la venta online. Autobusing no da su número de plazas, ni siquiera en la pantalla de datos del viajero. Si no están marcados como «Completo», la web indica «Quedan plazas» sin cifra.
+- autobusing no vende todos los días que deja buscar la web (hasta 60): ni algunos festivos ni las fechas a más de unos 50 días. En esos días se ven los horarios, pero no las plazas.
 - Algunas 909 continúan hasta el aeropuerto. Sus plazas se muestran sin aviso.
 - Solo un trayecto: Madrid Estación Sur ↔ Talavera. No hay otras estaciones ni buses que solo aparezcan en autobusing.
 - La interfaz se prueba automáticamente en navegadores y tamaños de pantalla simulados (ver [Tests](#tests)). No se ha probado en dispositivos físicos ni en plegables reales, y WebKit se parece a Safari pero no es Safari.
